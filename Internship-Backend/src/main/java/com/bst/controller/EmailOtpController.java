@@ -11,16 +11,20 @@ import com.bst.service.OtpService;
 @RestController
 @RequestMapping("/emailotp")
 public class EmailOtpController {
+
 	@Autowired
 	private OtpService otpService;
 
 	@PostMapping("/send")
 	public String sendOtp(@RequestParam String email) {
+		System.out.println("Received OTP request for: " + email);
 		return otpService.sendOtp(email);
 	}
 
 	@PostMapping("/verify")
-	public String verifyOtp(@RequestParam String email, @RequestParam String otp) {
+	public String verifyOtp(@RequestParam String email,
+			@RequestParam String otp) {
+		System.out.println("Verifying OTP for: " + email);
 		return otpService.verifyOtp(email, otp);
 	}
 }
