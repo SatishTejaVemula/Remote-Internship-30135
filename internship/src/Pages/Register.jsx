@@ -11,6 +11,7 @@ const Register = () => {
   const [emailVerified, setEmailVerified] = useState(false);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showOtpInput, setShowOtpInput] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -211,6 +212,7 @@ const Register = () => {
       }
 
       toast.success("OTP Sent");
+      setShowOtpInput(true);
 
     } catch (e) {
       toast.error("Unable to send OTP");
@@ -306,31 +308,32 @@ const Register = () => {
               ) : (
                 <button
                   type="button"
-                  className="verify-btn"
+                  className="login-btn verify-email-btn"
                   onClick={handleSendOtp}
+                  disabled={loading}
                 >
-                  Verify
+                  {loading ? "Sending..." : "Verify"}
                 </button>
               )}
 
             </div>
-            {emailVerified ? (
-              <button
-                type="button"
-                className="login-btn verify-email-btn"
-                disabled
-              >
-                ✓ Verified
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="login-btn verify-email-btn"
-                onClick={handleSendOtp}
-                disabled={loading}
-              >
-                {loading ? "Sending..." : "Verify"}
-              </button>
+
+            {showOtpInput && !emailVerified && (
+              <>
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="login-btn"
+                  onClick={handleVerifyOtp}
+                >
+                  Verify OTP
+                </button>
+              </>
             )}
 
             {role === "Admin" && (
