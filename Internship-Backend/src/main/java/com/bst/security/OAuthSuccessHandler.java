@@ -31,7 +31,7 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
 
 		String token = jwtUtil.generateToken(email, "ROLE_STUDENT");
 
-		response.sendRedirect("http://localhost:5173/oauth-success?token=" + token);
+		response.sendRedirect("https://remote-internship-30135.vercel.app/oauth-success?token=" + token);
 
 	}
 }
