@@ -27,7 +27,7 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/**", "/emailotp/**", "/api/applications/**", "/api/tasks/**",
 								"/api/employers/**", "/api/evaluations/**", "/api/students/image/**",
-								"/api/employers/image/**", "/uploads/**", "/swagger-ui/**", "/v3/api-docs/**")
+								"/api/employers/image/**", "/uploads/**", "/swagger-ui/**", "/v3/api-docs/**","/api/dev/**")
 						.permitAll().requestMatchers("/api/internships/create/**").hasRole("ADMIN")
 						.requestMatchers("/api/internships/**").permitAll().requestMatchers("/api/students/**")
 						.permitAll().anyRequest().authenticated())

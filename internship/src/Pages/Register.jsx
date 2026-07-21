@@ -163,7 +163,7 @@ const Register = () => {
       }
 
       const response = await fetch(
-        "http://localhost:1305/api/auth/register",
+        "https://remote-internship-30135.onrender.com/api/auth/register",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -197,7 +197,7 @@ const Register = () => {
       setLoading(true);
 
       const res = await fetch(
-        `http://localhost:1305/emailotp/send?email=${encodeURIComponent(formData.email)}`,
+        `https://remote-internship-30135.onrender.com/emailotp/send?email=${encodeURIComponent(formData.email)}`,
         {
           method: "POST"
         }
@@ -228,7 +228,7 @@ const Register = () => {
     try {
 
       const res = await fetch(
-        `http://localhost:1305/emailotp/verify?email=${encodeURIComponent(formData.email)}&otp=${otp}`,
+        `https://remote-internship-30135.onrender.com/emailotp/verify?email=${encodeURIComponent(formData.email)}&otp=${otp}`,
         {
           method: "POST"
         }

@@ -42,14 +42,14 @@ const BrowseInternships = () => {
   useEffect(() => {
     setLoading(true);
 
-    fetch("http://localhost:1305/api/internships/all")
+    fetch("https://remote-internship-30135.onrender.com/api/internships/all")
       .then((res) => res.json())
       .then(async (data) => {
         setInternships(data);
         const appliedList = [];
         for (let intern of data) {
           const res = await fetch(
-            `http://localhost:1305/api/applications/check?studentId=${userId}&internshipId=${intern.id}`
+            `https://remote-internship-30135.onrender.com/api/applications/check?studentId=${userId}&internshipId=${intern.id}`
           );
           const isApplied = await res.json();
           if (isApplied) appliedList.push(intern.id);
@@ -104,7 +104,7 @@ const BrowseInternships = () => {
 
     try {
       const res = await fetch(
-        "http://localhost:1305/api/applications/apply",
+        "https://remote-internship-30135.onrender.com/api/applications/apply",
         {
           method: "POST",
           body: formData,

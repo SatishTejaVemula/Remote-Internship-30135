@@ -55,7 +55,7 @@ const StudentProfile = () => {
 
     setLoading(true);
 
-    fetch(`http://localhost:1305/api/students/${storedStudent.id}`,
+    fetch(`https://remote-internship-30135.onrender.com/api/students/${storedStudent.id}`,
       {
         headers: {
           Authorization: `Bearer ${token}`
@@ -117,7 +117,7 @@ const StudentProfile = () => {
     setEditMode(false);
 
 
-    fetch(`http://localhost:1305/api/students/${profile.id}`, {
+    fetch(`https://remote-internship-30135.onrender.com/api/students/${profile.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -175,7 +175,7 @@ const StudentProfile = () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    fetch(`http://localhost:1305/api/students/${profile.id}/uploadImage`, {
+    fetch(`https://remote-internship-30135.onrender.com/api/students/${profile.id}/uploadImage`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
@@ -190,7 +190,7 @@ const StudentProfile = () => {
       });
   };
   const removeImage = () => {
-    fetch(`http://localhost:1305/api/students/${profile.id}/deleteImage`, {
+    fetch(`https://remote-internship-30135.onrender.com/api/students/${profile.id}/deleteImage`, {
       headers: { Authorization: `Bearer ${token}` },
       method: "DELETE",
     })
@@ -211,7 +211,7 @@ const StudentProfile = () => {
     formData.append("file", resumeFile);
 
     fetch(
-      `http://localhost:1305/api/students/${profile.id}/uploadResume`,
+      `https://remote-internship-30135.onrender.com/api/students/${profile.id}/uploadResume`,
       {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -230,7 +230,7 @@ const StudentProfile = () => {
   const viewResume = async () => {
     try {
       const response = await fetch(
-        `http://localhost:1305/api/students/resume/${extraData.resume}`,
+        `https://remote-internship-30135.onrender.com/api/students/resume/${extraData.resume}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -254,7 +254,7 @@ const StudentProfile = () => {
 
   const deleteResume = () => {
     fetch(
-      `http://localhost:1305/api/students/${profile.id}/deleteResume`,
+      `https://remote-internship-30135.onrender.com/api/students/${profile.id}/deleteResume`,
       { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
     ).then(() => {
       setExtraData({ ...extraData, resume: "" });
@@ -268,7 +268,7 @@ const StudentProfile = () => {
     profile.image
       ? profile.image.startsWith("data:")
         ? profile.image
-        : `http://localhost:1305/api/students/image/${profile.image}`
+        : `https://remote-internship-30135.onrender.com/api/students/image/${profile.image}`
       : "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
   return (
@@ -483,7 +483,7 @@ const StudentProfile = () => {
                         if (!skillInput.trim()) return;
 
                         await fetch(
-                          `http://localhost:1305/api/students/${profile.id}/add-skill?skill=${skillInput}`,
+                          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/add-skill?skill=${skillInput}`,
                           { method: "PUT" }
                         );
 
@@ -509,7 +509,7 @@ const StudentProfile = () => {
                         style={{ marginLeft: "8px", padding: "2px 6px" }}
                         onClick={async () => {
                           await fetch(
-                            `http://localhost:1305/api/students/${profile.id}/delete-skill?skill=${s}`,
+                            `https://remote-internship-30135.onrender.com/api/students/${profile.id}/delete-skill?skill=${s}`,
                             { method: "PUT" }
                           );
 
@@ -540,7 +540,7 @@ const StudentProfile = () => {
                         if (!linkInput.trim()) return;
 
                         await fetch(
-                          `http://localhost:1305/api/students/${profile.id}/add-link?link=${linkInput}`,
+                          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/add-link?link=${linkInput}`,
                           { method: "PUT" }
                         );
 
@@ -566,7 +566,7 @@ const StudentProfile = () => {
                         className="delete-btn"
                         onClick={async () => {
                           await fetch(
-                            `http://localhost:1305/api/students/${profile.id}/delete-link?link=${l}`,
+                            `https://remote-internship-30135.onrender.com/api/students/${profile.id}/delete-link?link=${l}`,
                             { method: "PUT" }
                           );
 

@@ -24,11 +24,11 @@ const AdminDashboard = () => {
       const admin = JSON.parse(localStorage.getItem("adminProfile"));
       const employerId = admin?.id;
       const internshipsRes = await fetch(
-        `http://localhost:1305/api/internships/employer/${employerId}`
+        `https://remote-internship-30135.onrender.com/api/internships/employer/${employerId}`
       );
       const internshipsData = await internshipsRes.json();
       const applicationsRes = await fetch(
-        `http://localhost:1305/api/applications/employer/${employerId}`
+        `https://remote-internship-30135.onrender.com/api/applications/employer/${employerId}`
       );
       const applicationsData = await applicationsRes.json();
       setInternships(Array.isArray(internshipsData) ? internshipsData : []);

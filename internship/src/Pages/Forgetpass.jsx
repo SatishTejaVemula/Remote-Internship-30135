@@ -32,7 +32,7 @@ const Forgetpass = () => {
       setLoading(true);
 
       const res = await fetch(
-        `http://localhost:1305/emailotp/send?email=${encodeURIComponent(email)}`,
+        `https://remote-internship-30135.onrender.com/emailotp/send?email=${encodeURIComponent(email)}`,
         {
           method: "POST"
         }
@@ -70,7 +70,7 @@ const Forgetpass = () => {
       setLoading(true);
 
       const res = await fetch(
-        `http://localhost:1305/emailotp/verify?email=${encodeURIComponent(email)}&otp=${otp}`,
+        `https://remote-internship-30135.onrender.com/emailotp/verify?email=${encodeURIComponent(email)}&otp=${otp}`,
         {
           method: "POST"
         }
@@ -112,7 +112,7 @@ const Forgetpass = () => {
       setLoading(true);
 
       const res = await fetch(
-        "http://localhost:1305/api/auth/forgot-password/reset",
+        "https://remote-internship-30135.onrender.com/api/auth/forgot-password/reset",
         {
           method: "POST",
           headers: {

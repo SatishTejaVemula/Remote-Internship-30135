@@ -44,7 +44,7 @@ const Postinternship = () => {
   useEffect(() => {
     setLoading(true);
 
-    fetch(`http://localhost:1305/api/internships/employer/${employerId}`, {
+    fetch(`https://remote-internship-30135.onrender.com/api/internships/employer/${employerId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -68,7 +68,7 @@ const Postinternship = () => {
 
     try {
       const res = await fetch(
-        `http://localhost:1305/api/internships?employerId=${employerId}`,
+        `https://remote-internship-30135.onrender.com/api/internships?employerId=${employerId}`,
         {
           method: "POST",
           headers: {
@@ -109,7 +109,7 @@ const Postinternship = () => {
 
   const handleDelete = async (id) => {
   try {
-    const res = await fetch(`http://localhost:1305/api/internships/delete/${id}`, {
+    const res = await fetch(`https://remote-internship-30135.onrender.com/api/internships/delete/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,

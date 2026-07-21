@@ -35,7 +35,7 @@ const MyTasks = () => {
 
     setLoading(true);
 
-    fetch(`http://localhost:1305/api/tasks/student/${student.id}`)
+    fetch(`https://remote-internship-30135.onrender.com/api/tasks/student/${student.id}`)
       .then((res) => res.json())
       .then((data) => {
         setTasks(data);
@@ -89,7 +89,7 @@ const MyTasks = () => {
       }
 
       await fetch(
-        `http://localhost:1305/api/tasks/submit/${selectedTask.id}`,
+        `https://remote-internship-30135.onrender.com/api/tasks/submit/${selectedTask.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -105,7 +105,7 @@ const MyTasks = () => {
       setSelectedTask(null);
 
       setLoading(true);
-      fetch(`http://localhost:1305/api/tasks/student/${student.id}`)
+      fetch(`https://remote-internship-30135.onrender.com/api/tasks/student/${student.id}`)
         .then((res) => res.json())
         .then((data) => {
           setTasks(data);
@@ -124,7 +124,7 @@ const MyTasks = () => {
   const confirmDeleteSubmission = async () => {
     try {
       await fetch(
-        `http://localhost:1305/api/tasks/${deleteTaskId}`,
+        `https://remote-internship-30135.onrender.com/api/tasks/${deleteTaskId}`,
         {
           method: "PUT",
         }
@@ -133,7 +133,7 @@ const MyTasks = () => {
       setLoading(true);
 
       const res = await fetch(
-        `http://localhost:1305/api/tasks/student/${student.id}`
+        `https://remote-internship-30135.onrender.com/api/tasks/student/${student.id}`
       );
 
       const data = await res.json();
@@ -246,7 +246,7 @@ const MyTasks = () => {
 
                     {task.submissionFileName && (
                       <a
-                        href={`http://localhost:1305/api/tasks/file/${task.id}`}
+                        href={`https://remote-internship-30135.onrender.com/api/tasks/file/${task.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="view-btn"

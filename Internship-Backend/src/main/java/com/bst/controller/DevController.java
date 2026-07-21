@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/dev")//http://localhost:1305/api/dev/all-users?email=babludev@gmail.com&password=dev123
+@RequestMapping("/api/dev")//https://remote-internship-30135.onrender.com/
 public class DevController {
 
     @Autowired

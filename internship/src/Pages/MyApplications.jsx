@@ -44,7 +44,7 @@ const MyApplications = () => {
         const token = localStorage.getItem("token");
 
         const res = await fetch(
-          `http://localhost:1305/api/applications/student/${student.id}`,
+          `https://remote-internship-30135.onrender.com/api/applications/student/${student.id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -85,7 +85,7 @@ const MyApplications = () => {
   };
   const confirmWithdraw = async () => {
     try {
-      await fetch(`http://localhost:1305/api/applications/${withdrawId}`, {
+      await fetch(`https://remote-internship-30135.onrender.com/api/applications/${withdrawId}`, {
         method: "DELETE",
       });
 

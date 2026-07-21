@@ -31,7 +31,7 @@ const Feedback = () => {
       return;
     }
 
-    fetch(`http://localhost:1305/api/evaluations/student/${student.id}`)
+    fetch(`https://remote-internship-30135.onrender.com/api/evaluations/student/${student.id}`)
       .then((res) => res.json())
       .then((data) => {
         setEvaluations(data);

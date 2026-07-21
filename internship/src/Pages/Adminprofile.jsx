@@ -44,7 +44,7 @@ const AdminProfile = () => {
 
     setLoading(true);
 
-    fetch(`http://localhost:1305/api/employers/${storedAdmin.id}`, {
+    fetch(`https://remote-internship-30135.onrender.com/api/employers/${storedAdmin.id}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -105,7 +105,7 @@ const AdminProfile = () => {
     setProfile((prev) => ({ ...prev, ...updated }));
     setEditMode(false);
 
-    fetch(`http://localhost:1305/api/employers/${profile.id}`, {
+    fetch(`https://remote-internship-30135.onrender.com/api/employers/${profile.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(updated),
@@ -120,7 +120,7 @@ const AdminProfile = () => {
     profile.image
       ? profile.image.startsWith("data:")
         ? profile.image
-        : `http://localhost:1305/api/employers/image/${profile.image}`
+        : `https://remote-internship-30135.onrender.com/api/employers/image/${profile.image}`
       : "https://cdn-icons-png.flaticon.com/512/149/149071.png";
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -139,7 +139,7 @@ const AdminProfile = () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    fetch(`http://localhost:1305/api/employers/${profile.id}/uploadImage`, {
+    fetch(`https://remote-internship-30135.onrender.com/api/employers/${profile.id}/uploadImage`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`
@@ -153,7 +153,7 @@ const AdminProfile = () => {
   };
 
   const removeImage = () => {
-    fetch(`http://localhost:1305/api/employers/${profile.id}/deleteImage`, {
+    fetch(`https://remote-internship-30135.onrender.com/api/employers/${profile.id}/deleteImage`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`

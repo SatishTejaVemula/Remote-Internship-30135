@@ -23,7 +23,7 @@ const Applications = () => {
     );
     const employerId = loggedEmployer?.id || {};
 
-    fetch(`http://localhost:1305/api/applications/employer/${employerId}`)
+    fetch(`https://remote-internship-30135.onrender.com/api/applications/employer/${employerId}`)
       .then((res) => res.json())
       .then((data) => {
         setApplications(Array.isArray(data) ? data : []);
@@ -39,7 +39,7 @@ const Applications = () => {
   const updateStatus = async (id, newStatus) => {
     try {
       const res = await fetch(
-        `http://localhost:1305/api/applications/${id}/status?status=${newStatus}`,
+        `https://remote-internship-30135.onrender.com/api/applications/${id}/status?status=${newStatus}`,
         {
           method: "PUT",
         }
@@ -115,7 +115,7 @@ const Applications = () => {
                     <p>
                       <strong>Resume:</strong>{" "}
                       <a
-                        href={`http://localhost:1305/${app.resumePath}`}
+                        href={`https://remote-internship-30135.onrender.com/${app.resumePath}`}
                         target="_blank"
                         rel="noreferrer"
                       >

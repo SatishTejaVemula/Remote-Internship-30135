@@ -26,7 +26,7 @@ const HeaderforStudent = () => {
   
     const token = localStorage.getItem("token");
 
-  fetch(`http://localhost:1305/api/students/${storedStudent.id}`,{
+  fetch(`https://remote-internship-30135.onrender.com/api/students/${storedStudent.id}`,{
  headers:{
   Authorization:`Bearer ${token}`
  }
@@ -88,14 +88,14 @@ const HeaderforStudent = () => {
               student?.image
                 ? student.image.startsWith("data:")
                   ? student.image
-                  : `http://localhost:1305/api/students/image/${student.image}`
+                  : `https://remote-internship-30135.onrender.com/api/students/image/${student.image}`
                 : "https://cdn-icons-png.flaticon.com/512/149/149071.png"
             }
             alt="profile"
             onLoad={() => setImgLoading(false)}
             onError={(e) => {
               e.target.src =
-                "http://localhost:1305/api/students/image/default";
+                "https://remote-internship-30135.onrender.com/api/students/image/default";
               setImgLoading(false);
             }}
             className="profile-avatar"
