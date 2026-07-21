@@ -24,20 +24,26 @@ public class OtpService {
     @Autowired
     private EmployerRepo employerRepo;
 
-    private Map<String,String> otpStorage = new HashMap<>();
-
+    private Map<String, String> otpStorage = new HashMap<>();
 
     public String sendOtp(String email) {
 
+        System.out.println("Step 1");
+
         String otp = OtpGeneration.getOtp();
+
+        System.out.println("Generated OTP: " + otp);
 
         otpStorage.put(email, otp);
 
+        System.out.println("Calling EmailOtpService...");
+
         emailService.sendOtpEmail(email, otp);
+
+        System.out.println("Email sent successfully");
 
         return "OTP sent to email";
     }
-
 
     // VERIFY OTP
     public String verifyOtp(String email, String enteredOtp) {
@@ -48,32 +54,30 @@ public class OtpService {
             return "OTP not found. Please request again";
         }
 
-        if(storedOtp.equals(enteredOtp)){
+        if (storedOtp.equals(enteredOtp)) {
 
-        	 otpStorage.remove(email);
+            otpStorage.remove(email);
 
-        	 Student student =
-        	   studentRepo
-        	   .findByEmail(email)
-        	   .orElse(null);
+            Student student = studentRepo
+                    .findByEmail(email)
+                    .orElse(null);
 
-        	 if(student!=null){
-        	    student.setVerified(true);
-        	    studentRepo.save(student);
-        	 }
+            if (student != null) {
+                student.setVerified(true);
+                studentRepo.save(student);
+            }
 
-        	 Employer emp =
-        	   employerRepo
-        	   .findByEmail(email)
-        	   .orElse(null);
+            Employer emp = employerRepo
+                    .findByEmail(email)
+                    .orElse(null);
 
-        	 if(emp!=null){
-        	    emp.setVerified(true);
-        	    employerRepo.save(emp);
-        	 }
+            if (emp != null) {
+                emp.setVerified(true);
+                employerRepo.save(emp);
+            }
 
-        	 return "OTP Verified Successfully";
-        	}
+            return "OTP Verified Successfully";
+        }
 
         return "Invalid OTP";
     }
