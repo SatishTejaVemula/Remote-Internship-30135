@@ -29,6 +29,24 @@ public class EmployerController {
     @Autowired
     private EmployerService employerService;
 
+    /*
+     * Upload directory
+     *
+     * If UPLOAD_DIR environment variable exists,
+     * it will be used.
+     *
+     * Otherwise, files will be stored inside:
+     * <application-directory>/uploads/
+     */
+    private final String uploadDir =
+            System.getenv("UPLOAD_DIR") != null
+                    ? System.getenv("UPLOAD_DIR")
+                    : System.getProperty("user.dir") + "/uploads/";
+
+    // =========================================================
+    // REGISTER EMPLOYER
+    // =========================================================
+
     @PostMapping("/register")
     public Employer register(
             @RequestBody Employer employer) {
@@ -36,12 +54,19 @@ public class EmployerController {
         return employerService.register(employer);
     }
 
+    // =========================================================
+    // GET ALL EMPLOYERS
+    // =========================================================
 
     @GetMapping
     public List<Employer> getAllEmployers() {
 
         return employerService.getAllEmployers();
     }
+
+    // =========================================================
+    // GET EMPLOYER BY ID
+    // =========================================================
 
     @GetMapping("/{id}")
     public EmployerDTO getEmployerById(
@@ -71,17 +96,29 @@ public class EmployerController {
         );
     }
 
+    // =========================================================
+    // GET EMPLOYER IMAGE
+    // =========================================================
+
     @GetMapping("/image/{filename}")
     public ResponseEntity<Resource> getImage(
             @PathVariable String filename) {
 
         try {
+
             if (filename == null ||
                     filename.isBlank() ||
                     "default".equalsIgnoreCase(filename)) {
 
-                return ResponseEntity.notFound().build();
+                return ResponseEntity
+                        .notFound()
+                        .build();
             }
+
+            /*
+             * Prevent path traversal.
+             * Only use the actual filename.
+             */
             String safeFileName =
                     Paths.get(filename)
                             .getFileName()
@@ -115,6 +152,7 @@ public class EmployerController {
                         .notFound()
                         .build();
             }
+
             String contentType =
                     Files.probeContentType(path);
 
@@ -150,7 +188,8 @@ public class EmployerController {
                 }
             }
 
-            return ResponseEntity.ok()
+            return ResponseEntity
+                    .ok()
                     .contentType(
                             MediaType.parseMediaType(
                                     contentType))
@@ -168,6 +207,11 @@ public class EmployerController {
                     .build();
         }
     }
+
+    // =========================================================
+    // UPLOAD EMPLOYER IMAGE
+    // =========================================================
+
     @PostMapping("/{id}/uploadImage")
     public String uploadImage(
             @PathVariable Long id,
@@ -179,12 +223,14 @@ public class EmployerController {
                         .orElseThrow(() ->
                                 new RuntimeException(
                                         "Employer not found"));
+
         if (file == null ||
                 file.isEmpty()) {
 
             throw new RuntimeException(
                     "Image file is empty");
         }
+
         String contentType =
                 file.getContentType();
 
@@ -194,11 +240,19 @@ public class EmployerController {
             throw new RuntimeException(
                     "Only image files are allowed");
         }
+
+        /*
+         * Create upload directory if it doesn't exist.
+         */
         Path uploadPath =
                 Paths.get(uploadDir);
 
         Files.createDirectories(
                 uploadPath);
+
+        // =====================================================
+        // DELETE OLD IMAGE
+        // =====================================================
 
         String oldFileName =
                 employer.getImage();
@@ -230,6 +284,11 @@ public class EmployerController {
                 e.printStackTrace();
             }
         }
+
+        // =====================================================
+        // GET ORIGINAL FILE NAME
+        // =====================================================
+
         String originalName =
                 file.getOriginalFilename();
 
@@ -239,28 +298,52 @@ public class EmployerController {
             originalName =
                     "company-logo";
         }
+
+        /*
+         * Prevent path traversal.
+         */
         originalName =
                 Paths.get(originalName)
                         .getFileName()
                         .toString();
+
+        // =====================================================
+        // CREATE UNIQUE FILE NAME
+        // =====================================================
+
         String fileName =
                 System.currentTimeMillis()
                         + "_"
                         + originalName;
+
         Path path =
                 uploadPath
                         .resolve(fileName)
                         .normalize();
+
+        // =====================================================
+        // SAVE FILE
+        // =====================================================
+
         Files.write(
                 path,
                 file.getBytes());
+
+        // =====================================================
+        // SAVE FILE NAME TO DATABASE
+        // =====================================================
+
         employer.setImage(fileName);
 
         employerRepo.save(employer);
 
-
         return fileName;
     }
+
+    // =========================================================
+    // DELETE EMPLOYER IMAGE
+    // =========================================================
+
     @DeleteMapping("/{id}/deleteImage")
     public void deleteImage(
             @PathVariable Long id) {
@@ -298,10 +381,18 @@ public class EmployerController {
             }
         }
 
+        /*
+         * Remove image reference from database.
+         */
         employer.setImage(null);
 
         employerRepo.save(employer);
     }
+
+    // =========================================================
+    // UPDATE EMPLOYER
+    // =========================================================
+
     @PutMapping("/{id}")
     public Employer updateEmployer(
             @PathVariable Long id,
@@ -314,51 +405,61 @@ public class EmployerController {
                                         "Employer not found"));
 
         if (e.getEmpname() != null) {
+
             existing.setEmpname(
                     e.getEmpname());
         }
 
         if (e.getLocation() != null) {
+
             existing.setLocation(
                     e.getLocation());
         }
 
         if (e.getCompanyname() != null) {
+
             existing.setCompanyname(
                     e.getCompanyname());
         }
 
         if (e.getPhonenumber() != null) {
+
             existing.setPhonenumber(
                     e.getPhonenumber());
         }
 
         if (e.getWebsite() != null) {
+
             existing.setWebsite(
                     e.getWebsite());
         }
 
         if (e.getImage() != null) {
+
             existing.setImage(
                     e.getImage());
         }
 
         if (e.getIndustry() != null) {
+
             existing.setIndustry(
                     e.getIndustry());
         }
 
         if (e.getCompanySize() != null) {
+
             existing.setCompanySize(
                     e.getCompanySize());
         }
 
         if (e.getDescription() != null) {
+
             existing.setDescription(
                     e.getDescription());
         }
 
         if (e.getHiringRoles() != null) {
+
             existing.setHiringRoles(
                     e.getHiringRoles());
         }
