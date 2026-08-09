@@ -1,0 +1,483 @@
+
+/* =========================================================
+   STUDENT HEADER
+========================================================= */
+
+.student-header {
+  height: 72px;
+  padding: 0 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  background: var(--sd-surface, #ffffff);
+  color: var(--sd-text, #111827);
+
+  border-bottom: 1px solid var(--sd-border, #e5e7eb);
+
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+
+/* =========================================================
+   LEFT SIDE / LOGO
+========================================================= */
+
+.dash-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+
+.logo-box {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: var(--sd-primary-soft, #eff6ff);
+}
+
+
+.logo-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin: 0;
+
+  font-size: 1.15rem;
+  font-weight: 700;
+
+  color: var(--sd-text, #111827);
+
+  cursor: pointer;
+
+  transition:
+    color 0.3s ease,
+    transform 0.3s ease;
+}
+
+
+.logo-title:hover {
+  color: var(--sd-primary, #3b82f6);
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   RIGHT SIDE
+========================================================= */
+
+.dash-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+
+/* =========================================================
+   USER INFORMATION
+========================================================= */
+
+.header-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+
+.headerloname {
+  text-decoration: none;
+}
+
+
+.student-name {
+  font-size: 15px;
+  font-weight: 600;
+
+  color: var(--sd-text, #111827);
+
+  transition: color 0.3s ease;
+}
+
+
+.student-email {
+  font-size: 12px;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  cursor: pointer;
+
+  transition: color 0.3s ease;
+}
+
+
+.student-email:hover {
+  color: var(--sd-primary, #3b82f6);
+}
+
+
+/* =========================================================
+   PROFILE IMAGE
+========================================================= */
+
+.profile-avatar {
+  width: 42px;
+  height: 42px;
+
+  border-radius: 50%;
+
+  object-fit: cover;
+
+  border: 2px solid var(--sd-border, #e5e7eb);
+
+  transition:
+    transform 0.3s ease,
+    border-color 0.3s ease;
+}
+
+
+.profile-avatar:hover {
+  transform: scale(1.08);
+}
+
+
+.avatar-skeleton {
+  width: 42px;
+  height: 42px;
+
+  border-radius: 50%;
+
+  background: var(--sd-border, #e5e7eb);
+
+  animation: avatar-loading 1.2s ease-in-out infinite;
+}
+
+
+@keyframes avatar-loading {
+  0% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.5;
+  }
+}
+
+
+/* =========================================================
+   THEME TOGGLE
+========================================================= */
+
+.theme-toggle {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 12px;
+
+  background: var(--sd-surface, #ffffff);
+
+  color: var(--sd-text, #111827);
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease;
+}
+
+
+.theme-toggle:hover {
+  background: var(--sd-hover, #f3f4f6);
+
+  color: var(--sd-primary, #fdfdfd);
+
+  border-color: var(--sd-primary, #3b82f6);
+
+  transform: translateY(-2px);
+}
+
+
+.theme-toggle:active {
+  transform: scale(0.94);
+}
+
+
+/* Dark theme */
+
+[data-theme="dark"] .theme-toggle {
+  background: var(--sd-surface, #171a21);
+
+  color: #f7f7f6;
+
+  border-color: var(--sd-border, #2a2f3a);
+}
+
+
+[data-theme="dark"] .theme-toggle:hover {
+  background: var(--sd-hover, #222731);
+
+  color: #fcfbfb;
+
+  border-color: #fcfcfb;
+}
+
+
+/* =========================================================
+   LOGOUT BUTTON
+========================================================= */
+
+.log-btun {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  background: var(--sd-surface, #ffffff);
+
+  color: #ef4444;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease;
+}
+
+
+.log-btun:hover {
+  background: rgba(239, 68, 68, 0.1);
+
+  border-color: #ef4444;
+
+  transform: translateY(-2px);
+
+  animation: pulse 1.5s infinite;
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+[data-theme="dark"] .student-header {
+  background: var(--sd-surface, #171a21);
+
+  color: var(--sd-text, #f3f4f6);
+
+  border-bottom-color: var(--sd-border, #2a2f3a);
+}
+
+
+[data-theme="dark"] .logo-title {
+  color: var(--sd-text, #f3f4f6);
+}
+
+
+[data-theme="dark"] .student-name {
+  color: var(--sd-text, #f3f4f6);
+}
+
+
+[data-theme="dark"] .student-email {
+  color: var(--sd-text-secondary, #9ca3af);
+}
+
+
+[data-theme="dark"] .profile-avatar {
+  border-color: var(--sd-border, #2a2f3a);
+}
+
+
+[data-theme="dark"] .avatar-skeleton {
+  background: #2a2f3a;
+}
+
+
+[data-theme="dark"] .log-btun {
+  background: var(--sd-surface, #171a21);
+
+  color: #f87171;
+
+  border-color: var(--sd-border, #2a2f3a);
+}
+
+
+[data-theme="dark"] .log-btun:hover {
+  background: rgba(239, 68, 68, 0.15);
+
+  border-color: #ef4444;
+
+  color: #f87171;
+}
+
+
+/* =========================================================
+   LIGHT MODE
+========================================================= */
+
+[data-theme="light"] .student-header {
+  background: var(--sd-surface, #ffffff);
+
+  color: var(--sd-text, #111827);
+
+  border-bottom-color: var(--sd-border, #e5e7eb);
+}
+
+
+[data-theme="light"] .logo-title {
+  color: var(--sd-text, #111827);
+}
+
+
+[data-theme="light"] .student-name {
+  color: var(--sd-text, #111827);
+}
+
+
+[data-theme="light"] .student-email {
+  color: var(--sd-text-secondary, #6b7280);
+}
+
+
+[data-theme="light"] .profile-avatar {
+  border-color: var(--sd-border, #e5e7eb);
+}
+
+
+[data-theme="light"] .avatar-skeleton {
+  background: #e5e7eb;
+}
+
+
+[data-theme="light"] .log-btun {
+  background: #ffffff;
+
+  color: #ef4444;
+
+  border-color: #e5e7eb;
+}
+
+
+[data-theme="light"] .log-btun:hover {
+  background: #fee2e2;
+
+  border-color: #ef4444;
+}
+
+
+/* =========================================================
+   PULSE ANIMATION
+========================================================= */
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.6;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+  .student-header {
+    height: 64px;
+
+    padding: 0 15px;
+  }
+
+
+  .logo-title {
+    font-size: 1rem;
+  }
+
+
+  .header-user-info {
+    display: none;
+  }
+
+
+  .dash-right {
+    gap: 8px;
+  }
+
+
+  .profile-avatar,
+  .avatar-skeleton,
+  .theme-toggle,
+  .log-btun {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+
+@media (max-width: 420px) {
+  .logo-title {
+    font-size: 0.9rem;
+  }
+
+
+  .logo-title svg {
+    width: 20px;
+    height: 20px;
+  }
+
+
+  .dash-right {
+    gap: 5px;
+  }
+
+
+  .profile-avatar,
+  .avatar-skeleton,
+  .theme-toggle,
+  .log-btun {
+    width: 35px;
+    height: 35px;
+  }
+}

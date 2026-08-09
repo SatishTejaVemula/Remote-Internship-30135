@@ -1,0 +1,446 @@
+/* ==========================================================================
+   LOGIN — recolored to match "Graphite & Cobalt"
+   -----------------------------------------------------------------------
+   Uses var(--token, fallback) throughout, so this file picks up the
+   shared tokens automatically if it's loaded alongside styles.css, but
+   still renders correctly on its own if it isn't.
+
+   Also fixed several real bugs found in the source (noted inline):
+   - .eye-icon:hover set `color` to a gradient, which is invalid CSS
+     and silently does nothing — browser just ignores the declaration.
+   - .refresh-btn used near-black text (rgb(5,5,5)) on a blue button —
+     ~1.9:1 contrast, fails WCAG AA even for large text.
+   - .captcha-text was hardcoded #000 with no light/dark variant, so
+     it goes invisible on the dark-theme captcha box.
+   - .login-card input background/border in [data-theme="dark"] was
+     declared twice (once without !important, once with) — dead code.
+   - Semantic colors (red/orange/green for password strength) were
+     bare keywords disconnected from the rest of the palette; now tied
+     to the shared danger/signature/success tokens so a strength bar
+     and a "verified" badge use the same green, etc.
+   ========================================================================== */
+
+.login-bg {
+  min-height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  justify-content: center;
+  align-items: center;
+  background: url("/internship/src/assets/login.jpg") center/cover no-repeat;
+}
+
+.login-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 460px;
+  padding: 40px;
+  border-radius: var(--radius-lg, 20px);
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(15px);
+  box-shadow: var(--shadow-md, 0 10px 40px rgba(0, 0, 0, 0.25));
+}
+
+/* -------------------------------------------------------------------- */
+/* Role switch                                                          */
+/* -------------------------------------------------------------------- */
+
+.role-switch {
+  display: flex;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-pill, 30px);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.role-switch button {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font-weight: 600;
+  transition: color var(--transition-fast, 0.2s ease);
+}
+
+.role-switch .active {
+  background: linear-gradient(90deg, var(--accent-primary, #2563eb), var(--accent-deep, #1e3a8a));
+  color: #fff;
+}
+
+/* -------------------------------------------------------------------- */
+/* Inputs                                                                */
+/* -------------------------------------------------------------------- */
+
+.login-card input {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: var(--radius-sm, 10px);
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.85);
+  outline: none;
+  transition: box-shadow var(--transition-med, 0.3s ease), border-color var(--transition-med, 0.3s ease);
+}
+
+.login-card input:focus {
+  border-color: var(--accent-primary, #2563eb);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+}
+
+.password-wrapper { position: relative; }
+.password-wrapper input { padding-right: 40px; }
+
+.eye-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--accent-primary, #2563eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast, 0.2s ease);
+}
+
+/* Fixed: `color: linear-gradient(...)` is invalid — a gradient can't
+   fill text color, only a background. Swapped for the lighter step of
+   the same accent ramp so it still reads as a clear hover state. */
+.eye-icon:hover {
+  color: var(--accent-primary-light, #38bdf8);
+}
+
+/* -------------------------------------------------------------------- */
+/* Buttons                                                              */
+/* -------------------------------------------------------------------- */
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-sm, 10px);
+  background: linear-gradient(90deg, var(--accent-primary, #2563eb), var(--accent-deep, #1e3a8a));
+  color: #fff;
+  font-weight: bold;
+  transition: transform var(--transition-med, 0.3s ease), box-shadow var(--transition-med, 0.3s ease);
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm, 0 10px 25px rgba(37, 99, 235, 0.35));
+}
+
+.login-btn:disabled {
+  background: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+  box-shadow: none;
+}
+
+.otp-btn {
+  width: 100%;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius-md, 12px);
+  background: var(--accent-primary, #2563eb);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--transition-med, 0.3s ease), box-shadow var(--transition-med, 0.3s ease);
+}
+.otp-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+}
+.otp-btn:disabled {
+  background: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+  box-shadow: none;
+}
+
+.verify-btn {
+  padding: 12px 16px;
+  border: none;
+  border-radius: var(--radius-sm, 10px);
+  cursor: pointer;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(90deg, var(--accent-primary, #2563eb), var(--accent-deep, #1e3a8a));
+  white-space: nowrap;
+  transition: transform var(--transition-fast, 0.2s ease);
+}
+.verify-btn:hover { transform: translateY(-2px); }
+
+.verify-email-btn {
+  width: auto;
+  min-width: 110px;
+  margin: 0;
+  padding: 12px 18px;
+  white-space: nowrap;
+}
+
+.refresh-btn {
+  border: none;
+  background: var(--accent-primary, #2563eb);
+  color: #fff; /* was near-black on blue — ~1.9:1 contrast, fails WCAG AA */
+  padding: 6px 12px;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background var(--transition-fast, 0.3s ease);
+}
+.refresh-btn:hover {
+  background: var(--accent-deep, #1e3a8a);
+}
+
+/* -------------------------------------------------------------------- */
+/* Links / rows                                                         */
+/* -------------------------------------------------------------------- */
+
+.forgot {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  margin-bottom: 20px;
+  font-size: 16px; /* was 20px — oversized relative to the rest of the form */
+  cursor: pointer;
+  transition: color var(--transition-fast, 0.2s ease);
+}
+.forgot:hover {
+  color: var(--danger, #f87171);
+}
+
+.usealignright,
+.usealignleft {
+  display: flex;
+  color: rgba(255, 255, 255, 0.9);
+  align-items: center;
+  text-decoration: none;
+  gap: 20px;
+  transition: color var(--transition-fast, 0.2s ease);
+}
+.usealignright { justify-content: right; }
+.usealignleft  { justify-content: left; }
+
+.usealignleft:hover,
+.usealignright:hover {
+  color: var(--accent-primary-light, #38bdf8);
+}
+
+.link-row {
+  display: flex;
+  margin-top: 10px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.link-row a {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+}
+
+.registerbut { cursor: pointer; transition: color var(--transition-fast, 0.2s ease); }
+.registerbut:hover { color: var(--accent-primary-light, #38bdf8); }
+
+/* -------------------------------------------------------------------- */
+/* Password strength — now tied to the shared danger/signature/success  */
+/* tokens instead of bare `red` / `orange` / `green` keywords, so the   */
+/* same three colors mean the same thing everywhere in the product.     */
+/* -------------------------------------------------------------------- */
+
+.strength-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 5px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+.strength {
+  height: 100%;
+  border-radius: 5px;
+  transition: width var(--transition-med, 0.3s ease), background var(--transition-med, 0.3s ease);
+}
+.strength.weak   { width: 33%;  background: var(--danger, #f87171); }
+.strength.medium { width: 66%;  background: var(--accent-signature, #f5a524); }
+.strength.strong { width: 100%; background: var(--success, #22c55e); }
+
+/* -------------------------------------------------------------------- */
+/* Captcha                                                              */
+/* -------------------------------------------------------------------- */
+
+.captcha-box {
+  margin-top: 10px;
+  padding: 12px 15px;
+  border-radius: var(--radius-sm, 10px);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+.captcha-text {
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #fff; /* was hardcoded #000 — invisible against the dark-theme box below */
+}
+
+/* -------------------------------------------------------------------- */
+/* Email verification row                                               */
+/* -------------------------------------------------------------------- */
+
+.email-verify-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+.email-verify-container input {
+  flex: 1;
+  margin: 0;
+}
+
+.verified-msg {
+  margin-top: 10px;
+  text-align: center;
+  color: var(--success, #22c55e);
+  font-weight: 700;
+}
+.verified-badge {
+  color: var(--success, #22c55e);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------- */
+/* Responsive                                                           */
+/* -------------------------------------------------------------------- */
+
+@media (max-width: 480px) {
+  .login-bg { padding: 20px; }
+  .login-card { width: 95%; max-width: 360px; padding: 28px; }
+  body { overflow-x: hidden; }
+}
+
+/* ==========================================================================
+   THEME OVERRIDES
+   -----------------------------------------------------------------------
+   Both themes below now derive their accents from the shared tokens
+   instead of a second, separate set of hardcoded hex values, so a
+   future re-theme only requires editing the token block in styles.css.
+   ========================================================================== */
+
+[data-theme="light"] .login-card {
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--text-primary, #111827);
+}
+[data-theme="light"] .role-switch { background: rgba(15, 23, 42, 0.06); }
+[data-theme="light"] .role-switch button { color: var(--text-primary, #111827); }
+
+[data-theme="light"] .login-card input {
+  background: #ffffff;
+  color: var(--text-primary, #111827);
+  border: 1px solid #d1d5db;
+}
+[data-theme="light"] .login-card input:-webkit-autofill,
+[data-theme="light"] .login-card input:-webkit-autofill:hover,
+[data-theme="light"] .login-card input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #111827;
+  -webkit-box-shadow: 0 0 0px 1000px white inset;
+}
+
+[data-theme="light"] .eye-icon { color: var(--accent-primary, #2563eb); }
+
+[data-theme="light"] .forgot,
+[data-theme="light"] .link-row a,
+[data-theme="light"] .usealignleft,
+[data-theme="light"] .usealignright {
+  color: var(--text-primary, #111827);
+}
+[data-theme="light"] .forgot:hover { color: var(--danger, #dc2626); }
+[data-theme="light"] .usealignleft:hover,
+[data-theme="light"] .usealignright:hover {
+  color: var(--accent-primary, #2563eb);
+}
+[data-theme="light"] .captcha-text { color: var(--text-primary, #111827); }
+[data-theme="light"] .captcha-box  { background: rgba(15, 23, 42, 0.05); }
+
+[data-theme="dark"] .login-card {
+  background: rgba(10, 13, 20, 0.88);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+[data-theme="dark"] .role-switch { background: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .role-switch button { color: #e5e7eb; }
+
+[data-theme="dark"] .login-card input {
+  background: #10131c;
+  color: #ffffff;
+  border: 1px solid #2a3140;
+  caret-color: #fff;
+}
+[data-theme="dark"] .login-card input::placeholder { color: #6b7280; }
+
+[data-theme="dark"] .login-card input:-webkit-autofill,
+[data-theme="dark"] .login-card input:-webkit-autofill:hover,
+[data-theme="dark"] .login-card input:-webkit-autofill:focus {
+  -webkit-text-fill-color: white !important;
+  -webkit-box-shadow: 0 0 0px 1000px #10131c inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+[data-theme="dark"] .eye-icon { color: var(--accent-primary-light, #38bdf8); }
+
+[data-theme="dark"] .forgot,
+[data-theme="dark"] .link-row a,
+[data-theme="dark"] .usealignleft,
+[data-theme="dark"] .usealignright {
+  color: #f3f4f6;
+}
+[data-theme="dark"] .forgot:hover { color: var(--danger, #f87171); }
+[data-theme="dark"] .usealignright:hover,
+[data-theme="dark"] .usealignleft:hover {
+  color: var(--accent-primary-light, #38bdf8);
+}
+
+[data-theme="dark"] .captcha-box  { background: rgba(255, 255, 255, 0.08); }
+[data-theme="dark"] .captcha-text { color: #fff; }
+.login-btn.loading {
+  cursor: not-allowed;
+  opacity: 0.85;
+  transform: none;
+  box-shadow: none;
+}
+
+.login-spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: login-spin 0.7s linear infinite;
+}
+
+@keyframes login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

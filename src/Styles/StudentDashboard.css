@@ -1,0 +1,1235 @@
+/* =========================================================
+   STUDENT DASHBOARD
+   Fixed Header + Fixed Sidebar + Scrollable Main
+========================================================= */
+
+
+/* =========================================================
+   ROOT VARIABLES
+========================================================= */
+
+:root {
+  --sd-sidebar-width: 260px;
+  --sd-topbar-height: 72px;
+
+  --sd-bg: #f8f9fb;
+  --sd-surface: #ffffff;
+  --sd-surface-soft: #f9fafb;
+
+  --sd-text: #111827;
+  --sd-text-secondary: #6b7280;
+  --sd-text-muted: #9ca3af;
+
+  --sd-border: #e5e7eb;
+
+  --sd-primary: #3b82f6;
+  --sd-primary-soft: #eff6ff;
+
+  --sd-green: #22c55e;
+  --sd-orange: #f97316;
+  --sd-purple: #8b5cf6;
+
+  --sd-hover: #f3f4f6;
+
+  --sd-shadow-sm:
+    0 1px 2px rgba(0, 0, 0, 0.04);
+
+  --sd-shadow-md:
+    0 4px 12px rgba(0, 0, 0, 0.06);
+
+  --sd-transition: 0.2s ease;
+}
+
+
+/* =========================================================
+   LIGHT THEME
+========================================================= */
+
+[data-theme="light"] {
+  --sd-bg: #f8f9fb;
+  --sd-surface: #ffffff;
+  --sd-surface-soft: #f9fafb;
+
+  --sd-text: #111827;
+  --sd-text-secondary: #6b7280;
+  --sd-text-muted: #9ca3af;
+
+  --sd-border: #e5e7eb;
+
+  --sd-primary: #3b82f6;
+  --sd-primary-soft: #eff6ff;
+
+  --sd-hover: #f3f4f6;
+
+  --sd-shadow-sm:
+    0 1px 2px rgba(0, 0, 0, 0.04);
+
+  --sd-shadow-md:
+    0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+
+/* =========================================================
+   DARK THEME
+========================================================= */
+
+[data-theme="dark"] {
+  --sd-bg: #0f1117;
+  --sd-surface: #171a21;
+  --sd-surface-soft: #1c2029;
+
+  --sd-text: #f3f4f6;
+  --sd-text-secondary: #9ca3af;
+  --sd-text-muted: #6b7280;
+
+  --sd-border: #2a2f3a;
+
+  --sd-primary: #60a5fa;
+  --sd-primary-soft: rgba(59, 130, 246, 0.14);
+
+  --sd-hover: #222731;
+
+  --sd-shadow-sm:
+    0 1px 2px rgba(0, 0, 0, 0.25);
+
+  --sd-shadow-md:
+    0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+
+/* =========================================================
+   GLOBAL RESET
+========================================================= */
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+
+  min-height: 100%;
+
+  width: 100%;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  background: var(--sd-bg);
+  color: var(--sd-text);
+
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+}
+
+
+/* =========================================================
+   DASHBOARD ROOT
+========================================================= */
+
+.student-dashboard,
+.sd-layout {
+  color: var(--sd-text);
+
+  background-color: var(--sd-bg);
+
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+
+  transition:
+    background-color var(--sd-transition),
+    color var(--sd-transition);
+}
+
+
+/* =========================================================
+   MAIN LAYOUT
+========================================================= */
+
+.sd-layout {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+
+  /* REMOVE padding-top */
+  padding-top: 0;
+
+  box-sizing: border-box;
+  background: var(--sd-bg);
+}
+
+
+/* =========================================================
+   FIXED HEADER
+========================================================= */
+
+/*
+   HeaderforStudent uses .dash-header.
+
+   Keep the header fixed at the top.
+*/
+
+.dash-header {
+  position: fixed;
+
+  top: 0;
+  left: 0;
+  right: 0;
+
+  width: 100%;
+
+  height: var(--sd-topbar-height);
+
+  box-sizing: border-box;
+
+  z-index: 1000;
+}
+
+
+/*
+   If another dashboard component uses .sd-topbar,
+   this also keeps it fixed.
+*/
+
+.sd-topbar {
+  position: fixed;
+
+  top: 0;
+  left: 0;
+  right: 0;
+
+  width: 100%;
+
+  height: var(--sd-topbar-height);
+
+  background-color: var(--sd-surface);
+
+  border-bottom:
+    1px solid var(--sd-border);
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  padding: 0 24px;
+
+  box-sizing: border-box;
+
+  z-index: 1000;
+
+  box-shadow: var(--sd-shadow-sm);
+
+  transition:
+    background-color var(--sd-transition),
+    border-color var(--sd-transition),
+    box-shadow var(--sd-transition);
+}
+
+
+/* =========================================================
+   TOPBAR BRAND
+========================================================= */
+
+.sd-topbar-brand {
+  font-weight: 700;
+
+  font-size: 1.125rem;
+
+  color: var(--sd-text);
+}
+
+
+/* =========================================================
+   TOPBAR USER
+========================================================= */
+
+.sd-topbar-user {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+}
+
+
+/* =========================================================
+   AVATAR
+========================================================= */
+
+.sd-avatar {
+  width: 32px;
+  height: 32px;
+
+  border-radius: 9999px;
+
+  background: var(--sd-primary-soft);
+
+  color: var(--sd-primary);
+
+  display: grid;
+
+  place-items: center;
+}
+
+
+/* =========================================================
+   USER NAME
+========================================================= */
+
+.sd-user-name {
+  font-weight: 500;
+
+  font-size: 0.875rem;
+
+  color: var(--sd-text);
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+.sd-logout {
+  background: transparent;
+
+  border: none;
+
+  cursor: pointer;
+
+  color: var(--sd-text-secondary);
+
+  padding: 6px;
+
+  border-radius: 8px;
+
+  display: grid;
+
+  place-items: center;
+
+  transition:
+    background-color var(--sd-transition),
+    color var(--sd-transition);
+}
+
+.sd-logout:hover {
+  background: var(--sd-hover);
+
+  color: #ef4444;
+}
+
+
+/* =========================================================
+   FIXED SIDEBAR
+========================================================= */
+
+.sd-sidebar {
+  position: fixed;
+
+  top: var(--sd-topbar-height);
+
+  left: 0;
+
+  bottom: 0;
+
+  width: var(--sd-sidebar-width);
+
+  height: calc(
+    100vh - var(--sd-topbar-height)
+  );
+
+  box-sizing: border-box;
+
+  background-color: var(--sd-surface);
+
+  border-right:
+    1px solid var(--sd-border);
+
+  padding: 16px 12px;
+
+  overflow-y: auto;
+
+  overflow-x: hidden;
+
+  z-index: 900;
+
+  transition:
+    background-color var(--sd-transition),
+    border-color var(--sd-transition);
+}
+
+
+.sd-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sd-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sd-sidebar::-webkit-scrollbar-thumb {
+  background: var(--sd-border);
+
+  border-radius: 999px;
+}
+
+
+.sd-nav {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 6px;
+
+  width: 100%;
+}
+
+
+.sd-nav-button {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  width: 100%;
+
+  padding: 10px 14px;
+
+  box-sizing: border-box;
+
+  border-radius: 10px;
+
+  border: none;
+
+  outline: none;
+
+  background: transparent;
+
+  color: var(--sd-text-secondary);
+
+  font-size: 0.875rem;
+
+  font-weight: 500;
+
+  cursor: pointer;
+
+  text-align: left;
+
+  transition:
+    background-color var(--sd-transition),
+    color var(--sd-transition);
+}
+
+
+.sd-nav-button:hover {
+  background: var(--sd-hover);
+
+  color: var(--sd-text);
+}
+
+
+.sd-nav-button.active {
+  background: var(--sd-primary-soft);
+
+  color: var(--sd-primary);
+}
+
+
+/* =========================================================
+   MAIN CONTENT
+========================================================= */
+
+.sd-main {
+  width: calc(100% - var(--sd-sidebar-width));
+
+  min-height: calc(100vh - var(--sd-topbar-height));
+
+  margin-left: var(--sd-sidebar-width);
+
+  /* This is the only spacing below the fixed header */
+  padding: 28px;
+
+  box-sizing: border-box;
+
+  background: var(--sd-bg);
+
+  overflow: visible;
+}
+
+
+/*
+   IMPORTANT:
+   Do NOT use overflow-y: auto here.
+
+   The normal browser page scrollbar
+   should scroll the entire main content.
+*/
+
+.sd-main {
+  overflow: visible;
+}
+
+
+/* =========================================================
+   MAIN CONTENT WIDTH
+========================================================= */
+
+.sd-main > * {
+  max-width: 1400px;
+}
+
+
+/* =========================================================
+   DASHBOARD HEADER SECTION
+========================================================= */
+
+.sd-header-section {
+  margin-bottom: 24px;
+}
+
+.sd-header-section h1 {
+  font-size: 1.75rem;
+
+  font-weight: 700;
+
+  color: var(--sd-text);
+
+  margin: 0 0 4px;
+}
+
+.sd-header-section p {
+  margin: 0;
+
+  color: var(--sd-text-secondary);
+
+  font-size: 0.95rem;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+   Used by My Applications / My Tasks / Browse
+========================================================= */
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  margin: 0 0 5px;
+
+  font-size: 1.75rem;
+  font-weight: 700;
+
+  color: var(--sd-text, #111827);
+}
+
+.page-header p {
+  margin: 0;
+
+  color: var(--sd-text-secondary);
+
+  font-size: 0.95rem;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   STATS GRID
+========================================================= */
+
+.sd-stats-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fit,
+      minmax(200px, 1fr)
+    );
+
+  gap: 16px;
+
+  margin-bottom: 24px;
+}
+
+
+/* =========================================================
+   STAT CARD
+========================================================= */
+
+.sd-stat-card {
+  background: var(--sd-surface);
+
+  border:
+    1px solid var(--sd-border);
+
+  border-radius: 14px;
+
+  padding: 18px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  box-shadow: var(--sd-shadow-sm);
+
+  transition:
+    background-color var(--sd-transition),
+    border-color var(--sd-transition),
+    box-shadow var(--sd-transition),
+    transform var(--sd-transition);
+}
+
+
+/* =========================================================
+   STAT CARD HOVER
+========================================================= */
+
+.sd-stat-card:hover {
+  box-shadow: var(--sd-shadow-md);
+
+  transform: translateY(-2px);
+}
+
+
+/* =========================================================
+   STAT INFORMATION
+========================================================= */
+
+.sd-stat-info {
+  display: flex;
+
+  flex-direction: column;
+}
+
+.sd-stat-label {
+  margin: 0;
+
+  color: var(--sd-text-secondary);
+
+  font-size: 0.85rem;
+
+  font-weight: 500;
+}
+
+.sd-stat-value {
+  margin: 6px 0 0;
+
+  font-size: 1.75rem;
+
+  font-weight: 700;
+
+  color: var(--sd-text);
+}
+
+
+/* =========================================================
+   STAT ICON
+========================================================= */
+
+.sd-stat-icon {
+  width: 48px;
+
+  height: 48px;
+
+  border-radius: 12px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  color: #ffffff !important;
+
+  flex-shrink: 0;
+}
+
+.sd-stat-icon svg {
+  width: 26px;
+
+  height: 26px;
+
+  color: #ffffff !important;
+
+  stroke: #ffffff !important;
+}
+
+.sd-stat-icon.blue {
+  background: var(--sd-primary);
+}
+
+.sd-stat-icon.green {
+  background: var(--sd-green);
+}
+
+.sd-stat-icon.orange {
+  background: var(--sd-orange);
+}
+
+.sd-stat-icon.purple {
+  background: var(--sd-purple);
+}
+
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.sd-card {
+  background: var(--sd-surface);
+
+  border:
+    1px solid var(--sd-border);
+
+  border-radius: 14px;
+
+  padding: 22px;
+
+  margin-bottom: 20px;
+
+  box-shadow: var(--sd-shadow-sm);
+
+  transition:
+    background-color var(--sd-transition),
+    border-color var(--sd-transition),
+    box-shadow var(--sd-transition);
+}
+
+
+/* No border color change */
+
+.sd-card:hover {
+  border-color: var(--sd-border);
+
+  box-shadow: var(--sd-shadow-md);
+}
+
+
+.sd-card h2 {
+  font-size: 1.15rem;
+
+  font-weight: 600;
+
+  color: var(--sd-text);
+
+  margin: 0 0 16px;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.sd-empty h3 {
+  font-size: 1rem;
+
+  color: var(--sd-text);
+
+  margin: 0 0 6px;
+}
+
+.sd-empty p {
+  color: var(--sd-text-secondary);
+
+  font-size: 0.9rem;
+
+  line-height: 1.5;
+
+  margin: 0;
+}
+
+
+/* =========================================================
+   INTERNSHIP
+========================================================= */
+
+.sd-internship-title {
+  font-size: 1.25rem;
+
+  font-weight: 600;
+
+  color: var(--sd-text);
+
+  margin: 0 0 4px;
+}
+
+.sd-company {
+  color: var(--sd-text-secondary);
+
+  font-size: 0.9rem;
+
+  margin: 0 0 18px;
+}
+
+
+/* =========================================================
+   DETAIL GRID
+========================================================= */
+
+.sd-detail-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fit,
+      minmax(140px, 1fr)
+    );
+
+  gap: 16px;
+}
+
+.sd-detail strong {
+  display: block;
+
+  font-size: 0.75rem;
+
+  color: var(--sd-text-muted);
+
+  font-weight: 600;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.05em;
+
+  margin-bottom: 4px;
+}
+
+.sd-detail p {
+  margin: 0;
+
+  color: var(--sd-text);
+
+  font-size: 0.95rem;
+
+  font-weight: 500;
+}
+
+
+/* =========================================================
+   PROGRESS
+========================================================= */
+
+.sd-progress {
+  margin-top: 8px;
+}
+
+.sd-progress-track {
+  width: 100%;
+
+  height: 10px;
+
+  background: var(--sd-border);
+
+  border-radius: 9999px;
+
+  overflow: hidden;
+}
+
+.sd-progress-fill {
+  height: 100%;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--sd-primary),
+      var(--sd-green)
+    );
+
+  border-radius: 9999px;
+
+  transition:
+    width 0.5s ease;
+}
+
+.sd-progress-text {
+  margin-top: 12px;
+
+  color: var(--sd-text-secondary);
+
+  font-size: 0.875rem;
+}
+
+
+/* =========================================================
+   LOADER
+========================================================= */
+
+.sd-loader {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 16px;
+
+  min-height: 300px;
+
+  color: var(--sd-text-secondary);
+}
+
+.sd-spinner {
+  width: 40px;
+
+  height: 40px;
+
+  border:
+    4px solid var(--sd-border);
+
+  border-top-color:
+    var(--sd-primary);
+
+  border-radius: 9999px;
+
+  animation:
+    sd-spin 0.8s linear infinite;
+}
+
+@keyframes sd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+[data-theme="dark"] .sd-stat-card,
+[data-theme="dark"] .sd-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="dark"] .sd-nav-button:hover {
+  background: #222731;
+}
+
+[data-theme="dark"] .sd-progress-track {
+  background: #2a2f3a;
+}
+
+
+/* =========================================================
+   DESKTOP LARGE SCREENS
+========================================================= */
+
+@media (min-width: 1400px) {
+
+  .sd-main {
+    padding-left: 32px;
+
+    padding-right: 32px;
+  }
+
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1000px) {
+
+  :root {
+    --sd-sidebar-width: 230px;
+  }
+
+  .sd-main {
+    padding: 24px;
+  }
+
+  .sd-nav-button {
+    padding: 10px 12px;
+
+    font-size: 0.84rem;
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+
+  :root {
+    --sd-topbar-height: 72px;
+  }
+
+
+  /* ===============================================
+     LAYOUT
+  =============================================== */
+
+  .sd-layout {
+    display: block;
+
+    padding-top:
+      var(--sd-topbar-height);
+
+    min-height: 100vh;
+  }
+
+
+  /* ===============================================
+     SIDEBAR → BOTTOM NAVIGATION
+  =============================================== */
+
+  .sd-sidebar {
+    position: fixed;
+
+    top: auto;
+
+    left: 0;
+
+    right: 0;
+
+    bottom: 0;
+
+    width: 100%;
+
+    height: auto;
+
+    min-height: 64px;
+
+    border-right: none;
+
+    border-top:
+      1px solid var(--sd-border);
+
+    padding: 7px 4px;
+
+    overflow: visible;
+
+    z-index: 900;
+  }
+
+
+  /* ===============================================
+     NAV
+  =============================================== */
+
+  .sd-nav {
+    flex-direction: row;
+
+    align-items: center;
+
+    justify-content: space-around;
+
+    gap: 0;
+
+    width: 100%;
+  }
+
+
+  /* ===============================================
+     NAV BUTTON
+  =============================================== */
+
+  .sd-nav-button {
+    flex: 1;
+
+    width: auto;
+
+    min-width: 55px;
+
+    padding: 7px 3px;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 4px;
+
+    font-size: 0.7rem;
+
+    text-align: center;
+  }
+
+
+  /* ===============================================
+     MAIN
+  =============================================== */
+
+  .sd-main {
+    width: 100%;
+
+    margin-left: 0;
+
+    min-height:
+      calc(
+        100vh -
+        var(--sd-topbar-height)
+      );
+
+    padding:
+      22px
+      18px
+      100px;
+
+    box-sizing: border-box;
+  }
+
+
+  /* ===============================================
+     HEADER
+  =============================================== */
+
+  .dash-header,
+  .sd-topbar {
+    height:
+      var(--sd-topbar-height);
+  }
+
+
+  /* ===============================================
+     HEADER SECTION
+  =============================================== */
+
+  .sd-header-section h1 {
+    font-size: 1.5rem;
+  }
+
+
+  /* ===============================================
+     STATS
+  =============================================== */
+
+  .sd-stats-grid {
+    grid-template-columns:
+      repeat(2, 1fr);
+
+    gap: 12px;
+  }
+
+
+  .sd-stat-card {
+    padding: 16px;
+  }
+
+
+  .sd-stat-value {
+    font-size: 1.5rem;
+  }
+
+
+  .sd-stat-icon {
+    width: 42px;
+
+    height: 42px;
+  }
+
+
+  .sd-stat-icon svg {
+    width: 23px;
+
+    height: 23px;
+  }
+
+
+  /* ===============================================
+     CARDS
+  =============================================== */
+
+  .sd-card {
+    padding: 18px;
+  }
+
+
+  /* ===============================================
+     PAGE HEADER
+  =============================================== */
+
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+  .sd-main {
+    padding:
+      18px
+      14px
+      100px;
+  }
+
+
+  .sd-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+
+  .sd-stat-card {
+    padding: 16px;
+  }
+
+
+  .sd-card {
+    padding: 18px;
+
+    border-radius: 12px;
+  }
+
+
+  .sd-header-section h1 {
+    font-size: 1.35rem;
+  }
+
+
+  .page-header h1 {
+    font-size: 1.35rem;
+  }
+
+
+  .sd-nav-button {
+    min-width: 52px;
+
+    font-size: 0.68rem;
+  }
+
+
+  .sd-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+}

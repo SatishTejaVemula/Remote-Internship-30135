@@ -1,0 +1,928 @@
+/* =========================================================
+   MY APPLICATIONS
+   Student Dashboard Theme
+========================================================= */
+
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  margin: 0 0 5px;
+
+  font-size: 1.75rem;
+  font-weight: 700;
+
+  color: var(--sd-text, #111827);
+}
+
+.page-header p {
+  margin: 0;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   STATS GRID
+========================================================= */
+
+.stats-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fit,
+      minmax(200px, 1fr)
+    );
+
+  gap: 16px;
+
+  margin-bottom: 24px;
+}
+
+
+/* =========================================================
+   STAT CARD
+========================================================= */
+
+.stat-card {
+  background: var(--sd-surface, #ffffff);
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 14px;
+
+  padding: 18px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03);
+
+  transition:
+    background-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+
+/* No border color change */
+
+.stat-card:hover {
+  border-color: var(--sd-border, #e5e7eb);
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.06);
+}
+
+
+/* =========================================================
+   STAT LEFT
+========================================================= */
+
+.stat-left {
+  display: flex;
+
+  flex-direction: column;
+}
+
+.stat-left p {
+  margin: 0;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.85rem;
+
+  font-weight: 500;
+}
+
+.stat-left h3 {
+  margin: 6px 0 0;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 1.75rem;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   STAT ICON
+========================================================= */
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 12px;
+
+  /* Important */
+  color: #ffffff !important;
+}
+
+.stat-icon svg {
+  width: 26px;
+  height: 26px;
+
+  color: #ffffff !important;
+
+  stroke: #ffffff !important;
+
+  stroke-width: 2.2;
+}
+
+
+/* =========================================================
+   STAT ICON COLORS
+========================================================= */
+
+.stat-icon.blue {
+  background: #3b82f6;
+
+  color: #ffffff !important;
+}
+
+.stat-icon.orange {
+  background: #f97316;
+
+  color: #ffffff !important;
+}
+
+.stat-icon.green {
+  background: #22c55e;
+
+  color: #ffffff !important;
+}
+
+.stat-icon.purple {
+  background: #f65c5c;
+
+  color: #ffffff !important;
+}
+
+
+/* Force Lucide SVG colors */
+
+.stat-icon.blue svg,
+.stat-icon.orange svg,
+.stat-icon.green svg,
+.stat-icon.purple svg {
+  color: #ffffff !important;
+
+  stroke: #ffffff !important;
+}
+
+/* =========================================================
+   APPLICATION LIST
+========================================================= */
+
+.application-list {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 20px;
+}
+
+
+/* =========================================================
+   APPLICATION CARD
+========================================================= */
+
+.application-card {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  background: var(--sd-surface, #ffffff);
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 14px;
+
+  padding: 22px;
+
+  margin-bottom: 20px;
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+  gap: 24px;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03);
+
+  transition:
+    background-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+
+/*
+   IMPORTANT:
+   Border remains the same on hover.
+*/
+
+.application-card:hover {
+  border-color: var(--sd-border, #e5e7eb);
+
+  background: var(--sd-surface, #ffffff);
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.06);
+}
+
+
+/* =========================================================
+   APPLICATION TITLE
+========================================================= */
+
+.application-card h3 {
+  margin: 0 0 5px;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 1.2rem;
+
+  font-weight: 600;
+}
+
+.application-card > div:first-child > p {
+  margin: 0;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.9rem;
+}
+
+
+/* =========================================================
+   PROGRESS / META INFORMATION
+========================================================= */
+
+.progress-meta {
+  display: flex;
+
+  align-items: center;
+
+  flex-wrap: wrap;
+
+  gap: 18px;
+
+  margin-top: 16px;
+}
+
+.progress-meta div {
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.85rem;
+}
+
+.progress-meta svg {
+  color: var(--sd-primary, #3b82f6);
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   STATUS BADGE
+========================================================= */
+
+.status-badge {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 7px 13px;
+
+  border-radius: 9999px;
+
+  font-size: 0.72rem;
+
+  font-weight: 700;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.03em;
+
+  white-space: nowrap;
+}
+
+
+/* Pending */
+
+.status-badge.pending,
+.status-badge.under-review {
+  background: rgba(245, 158, 11, 0.15);
+
+  color: #f59e0b;
+}
+
+
+/* Approved */
+
+.status-badge.approved {
+  background: rgba(34, 197, 94, 0.15);
+
+  color: #22c55e;
+}
+
+
+/* Rejected */
+
+.status-badge.rejected {
+  background: rgba(239, 68, 68, 0.15);
+
+  color: #ef4444;
+}
+
+
+/* =========================================================
+   APPLICATION MESSAGE BOXES
+========================================================= */
+
+.approved-box,
+.application-pending,
+.application-rejected {
+  margin-top: 16px;
+
+  padding: 13px 17px;
+
+  border-radius: 12px;
+
+  font-size: 0.875rem;
+
+  font-weight: 600;
+
+  line-height: 1.5;
+}
+
+
+/* Approved */
+
+.approved-box {
+  background: rgba(34, 197, 94, 0.10);
+
+  border: 1px solid rgba(34, 197, 94, 0.25);
+
+  color: #22c55e;
+}
+
+.approved-box span {
+  color: #22c55e;
+}
+
+
+/* Pending */
+
+.application-pending {
+  background: rgba(245, 158, 11, 0.10);
+
+  border: 1px solid rgba(245, 158, 11, 0.25);
+
+  color: #f59e0b;
+}
+
+
+/* Rejected */
+
+.application-rejected {
+  background: rgba(239, 68, 68, 0.10);
+
+  border: 1px solid rgba(239, 68, 68, 0.25);
+
+  color: #ef4444;
+}
+
+
+/* =========================================================
+   APPLICATION ACTIONS
+========================================================= */
+
+.application-actions {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-end;
+
+  gap: 10px;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   VIEW BUTTON
+========================================================= */
+
+.view-button {
+  padding: 9px 16px;
+
+  border-radius: 10px;
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  background: transparent;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 0.875rem;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+/* No border change */
+
+.view-button:hover {
+  border-color: var(--sd-border, #e5e7eb);
+
+  background: var(
+    --sd-primary-soft,
+    #eff6ff
+  );
+
+  color: var(--sd-primary, #3b82f6);
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   DELETE / WITHDRAW BUTTON
+========================================================= */
+
+.delete-btn,
+.withdraw-btn {
+  padding: 9px 16px;
+
+  border-radius: 10px;
+
+  border: none;
+
+  background: rgba(239, 68, 68, 0.12);
+
+  color: #ef4444;
+
+  font-size: 0.875rem;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.delete-btn:hover,
+.withdraw-btn:hover {
+  background: rgba(239, 68, 68, 0.20);
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.dashboard-card {
+  background: var(--sd-surface, #ffffff);
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 14px;
+
+  padding: 30px 22px;
+
+  margin-bottom: 20px;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.dashboard-card p {
+  margin: 0;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.9rem;
+}
+
+
+/* =========================================================
+   MODAL OVERLAY
+========================================================= */
+
+.modal-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 9999;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 20px;
+
+  box-sizing: border-box;
+
+  background: rgba(0, 0, 0, 0.65);
+
+  backdrop-filter: blur(5px);
+}
+
+
+/* =========================================================
+   MODAL CONTAINER
+========================================================= */
+
+.modal-container {
+  width: min(700px, 92%);
+
+  max-height: 85vh;
+
+  overflow-y: auto;
+
+  box-sizing: border-box;
+
+  padding: 26px;
+
+  background: var(--sd-surface, #ffffff);
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 14px;
+
+  color: var(--sd-text, #111827);
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.25);
+
+  animation: application-modal-in 0.2s ease;
+}
+
+
+@keyframes application-modal-in {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(10px)
+      scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+
+/* =========================================================
+   MODAL TEXT
+========================================================= */
+
+.modal-container h2 {
+  margin: 0 0 18px;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 1.25rem;
+
+  font-weight: 600;
+}
+
+.modal-container h3 {
+  margin: 0 0 8px;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 1.15rem;
+}
+
+.modal-container p {
+  margin: 0 0 12px;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.9rem;
+
+  line-height: 1.5;
+}
+
+.modal-container strong {
+  color: var(--sd-text, #111827);
+}
+
+
+/* =========================================================
+   MODAL ACTIONS
+========================================================= */
+
+.modal-actions {
+  margin-top: 20px;
+
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 10px;
+}
+
+
+/* =========================================================
+   CANCEL BUTTON
+========================================================= */
+
+.cancel-btn {
+  padding: 10px 18px;
+
+  border-radius: 10px;
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  background: transparent;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 0.875rem;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.cancel-btn:hover {
+  border-color: var(--sd-border, #e5e7eb);
+
+  background: var(
+    --sd-hover,
+    #f3f4f6
+  );
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   WITHDRAW CONFIRMATION
+========================================================= */
+
+.modal-container .withdraw-btn {
+  background: #ef4444;
+
+  color: #ffffff;
+
+  border: none;
+
+  padding: 10px 18px;
+}
+
+.modal-container .withdraw-btn:hover {
+  background: #dc2626;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   DARK THEME
+========================================================= */
+
+[data-theme="dark"] .application-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .application-card:hover {
+  border-color: var(--sd-border, #2a2f3a);
+
+  background: var(--sd-surface, #171a21);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.30);
+}
+
+[data-theme="dark"] .stat-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .stat-card:hover {
+  border-color: var(--sd-border, #2a2f3a);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.30);
+}
+
+[data-theme="dark"] .view-button:hover {
+  border-color: var(--sd-border, #2a2f3a);
+
+  background: rgba(59, 130, 246, 0.12);
+}
+
+[data-theme="dark"] .cancel-btn:hover {
+  border-color: var(--sd-border, #2a2f3a);
+
+  background: var(--sd-hover, #222731);
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+
+  .stats-grid {
+    grid-template-columns:
+      repeat(2, 1fr);
+
+    gap: 12px;
+  }
+
+
+  .stat-card {
+    padding: 16px;
+  }
+
+
+  .stat-left h3 {
+    font-size: 1.5rem;
+  }
+
+
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+
+  .application-card {
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 20px;
+
+    padding: 18px;
+  }
+
+
+  .application-card > div:last-child {
+    width: 100%;
+
+    align-items: stretch !important;
+  }
+
+
+  .application-actions {
+    width: 100%;
+
+    align-items: stretch;
+  }
+
+
+  .view-button,
+  .delete-btn {
+    width: 100%;
+  }
+
+
+  .progress-meta {
+    gap: 10px 16px;
+  }
+
+
+  .modal-overlay {
+    padding: 12px;
+  }
+
+
+  .modal-container {
+    width: 100%;
+
+    max-height: 92vh;
+
+    padding: 20px;
+  }
+
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+
+  .cancel-btn,
+  .withdraw-btn {
+    width: 100%;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+
+  .page-header h1 {
+    font-size: 1.35rem;
+  }
+
+
+  .application-card {
+    padding: 16px;
+
+    border-radius: 12px;
+  }
+
+
+  .progress-meta {
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 8px;
+  }
+
+
+  .modal-overlay {
+    padding: 8px;
+  }
+
+
+  .modal-container {
+    padding: 16px;
+
+    border-radius: 12px;
+  }
+}

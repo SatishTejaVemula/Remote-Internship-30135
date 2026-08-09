@@ -1,0 +1,627 @@
+/* =========================================================
+   FEEDBACK PAGE
+   Student Dashboard Theme
+========================================================= */
+
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  margin: 0 0 5px;
+
+  color: var(--sd-text);
+
+  font-size: 1.75rem;
+
+  font-weight: 700;
+}
+
+.page-header p {
+  margin: 0;
+
+  color: var(--sd-text-secondary);
+
+  font-size: 0.95rem;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   STATS GRID
+========================================================= */
+
+.stats-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fit,
+      minmax(200px, 1fr)
+    );
+
+  gap: 16px;
+
+  margin-bottom: 24px;
+}
+
+
+/* =========================================================
+   STAT CARD
+========================================================= */
+
+.stat-card {
+  background: var(--sd-surface);
+
+  border:
+    1px solid var(--sd-border);
+
+  border-radius: 14px;
+
+  padding: 18px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+
+/* No border color change */
+
+.stat-card:hover {
+  border-color: var(--sd-border);
+
+  background: var(--sd-surface);
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.06);
+}
+
+
+/* =========================================================
+   STAT LEFT
+========================================================= */
+
+.stat-left {
+  display: flex;
+
+  flex-direction: column;
+}
+
+.stat-left p {
+  margin: 0;
+
+  color: var(--sd-text-secondary);
+
+  font-size: 0.85rem;
+
+  font-weight: 500;
+}
+
+.stat-left h3 {
+  margin: 6px 0 0;
+
+  color: var(--sd-text);
+
+  font-size: 1.75rem;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   STAT ICON
+========================================================= */
+
+.stat-icon {
+  width: 48px;
+
+  height: 48px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 12px;
+
+  color: #ffffff !important;
+}
+
+
+.stat-icon svg {
+  width: 26px;
+
+  height: 26px;
+
+  color: #ffffff !important;
+
+  stroke: #ffffff !important;
+}
+
+
+/* =========================================================
+   ICON COLORS
+========================================================= */
+
+.stat-icon.blue {
+  background: #3b82f6;
+
+  color: #ffffff !important;
+}
+
+.stat-icon.orange {
+  background: #f59e0b;
+
+  color: #ffffff !important;
+}
+
+.stat-icon.green {
+  background: #22c55e;
+
+  color: #ffffff !important;
+}
+
+.stat-icon.purple {
+  background: #8b5cf6;
+
+  color: #ffffff !important;
+}
+
+
+/* =========================================================
+   PERFORMANCE CARD
+========================================================= */
+
+.performance-card {
+  background: var(--sd-surface);
+
+  border:
+    1px solid var(--sd-border);
+
+  border-radius: 14px;
+
+  padding: 22px;
+
+  margin-bottom: 20px;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03);
+
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+.performance-card:hover {
+  border-color: var(--sd-border);
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.06);
+}
+
+
+.performance-card h2 {
+  margin: 0 0 16px;
+
+  color: var(--sd-text);
+
+  font-size: 1.15rem;
+
+  font-weight: 600;
+}
+
+
+.performance-card p {
+  margin: 0;
+
+  color: var(--sd-text-secondary);
+
+  font-size: 0.9rem;
+}
+
+
+/* =========================================================
+   PROGRESS BAR
+========================================================= */
+
+.progress-bar {
+  width: 100%;
+
+  height: 10px;
+
+  margin-top: 12px;
+
+  background: var(--sd-border);
+
+  border-radius: 9999px;
+
+  overflow: hidden;
+}
+
+
+.progress-fill {
+  height: 100%;
+
+  border-radius: 9999px;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--sd-primary),
+      #8b5cf6
+    );
+
+  transition:
+    width 0.5s ease;
+}
+
+
+/* =========================================================
+   PERFORMANCE PERCENT
+========================================================= */
+
+.performance-percent {
+  margin-top: 10px;
+
+  color: var(--sd-text);
+
+  font-size: 1.1rem;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   FEEDBACK SECTION
+========================================================= */
+
+.feedback-section {
+  background: var(--sd-surface);
+
+  border:
+    1px solid var(--sd-border);
+
+  border-radius: 14px;
+
+  padding: 22px;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+
+.feedback-section > h2 {
+  margin: 0 0 18px;
+
+  color: var(--sd-text);
+
+  font-size: 1.15rem;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   EVALUATION CARD
+========================================================= */
+
+.evaluation-card {
+  background: var(--sd-surface-soft);
+
+  border:
+    1px solid var(--sd-border);
+
+  border-radius: 12px;
+
+  padding: 20px;
+
+  margin-bottom: 16px;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+
+.evaluation-card:last-child {
+  margin-bottom: 0;
+}
+
+
+.evaluation-card:hover {
+  border-color: var(--sd-border);
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
+
+/* =========================================================
+   INTERNSHIP TITLE
+========================================================= */
+
+.evaluation-card > h2 {
+  margin: 0 0 12px;
+
+  color: var(--sd-text);
+
+  font-size: 1.1rem;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   TASK + RATING
+========================================================= */
+
+.evaluation-header {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-bottom: 12px;
+}
+
+
+.evaluation-header h3 {
+  margin: 0;
+
+  color: var(--sd-text);
+
+  font-size: 1rem;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   RATING
+========================================================= */
+
+.rating-score {
+  flex-shrink: 0;
+
+  color: #f59e0b;
+
+  font-size: 0.9rem;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   EVALUATION TEXT
+========================================================= */
+
+.evaluation-card p {
+  margin: 8px 0;
+
+  color: var(--sd-text-secondary);
+
+  font-size: 0.9rem;
+
+  line-height: 1.6;
+}
+
+
+.evaluation-card p strong {
+  color: var(--sd-text);
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   FEEDBACK BOX
+========================================================= */
+
+.feedback-box {
+  margin-top: 16px;
+
+  padding: 14px 16px;
+
+  background:
+    rgba(59, 130, 246, 0.08);
+
+  border:
+    1px solid rgba(59, 130, 246, 0.2);
+
+  border-radius: 10px;
+
+  color: var(--sd-text);
+
+  font-size: 0.9rem;
+
+  line-height: 1.6;
+}
+
+
+.feedback-box strong {
+  color: var(--sd-primary);
+}
+
+
+/* =========================================================
+   EMPTY FEEDBACK
+========================================================= */
+
+.no-feedback {
+  min-height: 160px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 10px;
+
+  padding: 20px;
+
+  text-align: center;
+
+  color: var(--sd-text-muted);
+}
+
+
+.no-feedback svg {
+  color: var(--sd-text-muted);
+}
+
+
+.no-feedback p {
+  margin: 0;
+
+  color: var(--sd-text-secondary);
+
+  font-size: 0.9rem;
+}
+
+
+/* =========================================================
+   DARK THEME
+========================================================= */
+
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .performance-card,
+[data-theme="dark"] .feedback-section {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+
+[data-theme="dark"] .stat-card:hover,
+[data-theme="dark"] .performance-card:hover,
+[data-theme="dark"] .evaluation-card:hover {
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.25);
+}
+
+
+[data-theme="dark"] .evaluation-card {
+  background: var(--sd-surface-soft);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 768px) {
+
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+
+  .stats-grid {
+    grid-template-columns:
+      repeat(2, 1fr);
+
+    gap: 12px;
+  }
+
+
+  .stat-card {
+    padding: 16px;
+  }
+
+
+  .stat-left h3 {
+    font-size: 1.5rem;
+  }
+
+
+  .stat-icon {
+    width: 42px;
+
+    height: 42px;
+  }
+
+
+  .stat-icon svg {
+    width: 23px;
+
+    height: 23px;
+  }
+
+
+  .performance-card,
+  .feedback-section {
+    padding: 18px;
+  }
+
+
+  .evaluation-card {
+    padding: 18px;
+  }
+
+
+  .evaluation-header {
+    align-items: flex-start;
+
+    flex-direction: column;
+
+    gap: 8px;
+  }
+}
+
+
+@media (max-width: 480px) {
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+
+  .page-header h1 {
+    font-size: 1.35rem;
+  }
+
+
+  .performance-card,
+  .feedback-section,
+  .evaluation-card {
+    border-radius: 12px;
+  }
+
+
+  .evaluation-card {
+    padding: 16px;
+  }
+}

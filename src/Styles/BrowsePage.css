@@ -1,0 +1,991 @@
+/* =========================================================
+   BROWSE INTERNSHIPS PAGE
+   Uses StudentDashboard.css for the main dashboard layout
+========================================================= */
+
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
+
+.browse-page-header {
+  margin-bottom: 24px;
+}
+
+.browse-page-header h1 {
+  margin: 0 0 5px;
+
+  font-size: 1.75rem;
+  font-weight: 700;
+
+  color: var(--sd-text, #111827);
+}
+
+.browse-page-header p {
+  margin: 0;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   SEARCH BOX
+========================================================= */
+
+.browse-search-box {
+  width: 100%;
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 14px 16px;
+
+  margin-bottom: 24px;
+
+  background: var(--sd-surface, #ffffff);
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 14px;
+
+  transition:
+    background-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.browse-search-box svg {
+  flex-shrink: 0;
+
+  color: var(--sd-text-secondary, #6b7280);
+}
+
+.browse-search-box input {
+  flex: 1;
+
+  min-width: 0;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 0.95rem;
+}
+
+.browse-search-box input::placeholder {
+  color: var(--sd-text-secondary, #6b7280);
+}
+
+/*
+   IMPORTANT:
+   Border DOES NOT change on focus.
+*/
+
+.browse-search-box:focus-within {
+  border-color: var(--sd-border, #e5e7eb);
+
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+
+/* =========================================================
+   INTERNSHIP LIST
+========================================================= */
+
+.browse-internship-list {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 20px;
+}
+
+
+/* =========================================================
+   INTERNSHIP CARD
+   Same visual style as dashboard .sd-card
+========================================================= */
+
+.browse-card {
+  width: 100%;
+  box-sizing: border-box;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 24px;
+
+  padding: 22px;
+
+  background: var(--sd-surface, #ffffff);
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 14px;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03);
+
+  transition:
+    background-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+
+/*
+   IMPORTANT:
+   Hover does NOT change border color.
+*/
+
+.browse-card:hover {
+  border-color: var(--sd-border, #e5e7eb);
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.06);
+}
+
+
+/* =========================================================
+   CARD CONTENT
+========================================================= */
+
+.browse-card-content {
+  flex: 1;
+
+  min-width: 0;
+}
+
+.browse-card-content h3 {
+  margin: 0 0 10px;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 1.2rem;
+
+  font-weight: 600;
+
+  line-height: 1.4;
+}
+
+.browse-card-content p {
+  margin: 12px 0 0;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.9rem;
+
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   INTERNSHIP META
+========================================================= */
+
+.browse-meta {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  align-items: center;
+
+  gap: 18px;
+}
+
+.browse-meta span {
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.85rem;
+}
+
+.browse-meta svg {
+  flex-shrink: 0;
+
+  color: var(--sd-primary, #3b82f6);
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.browse-actions {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   APPLY BUTTON
+========================================================= */
+
+.apply-btn {
+  padding: 10px 18px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background: var(--sd-primary, #3b82f6);
+
+  color: #ffffff;
+
+  font-size: 0.875rem;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.apply-btn:hover {
+  background: #2563eb;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 5px 15px rgba(59, 130, 246, 0.2);
+}
+
+.apply-btn:active {
+  transform: translateY(0);
+}
+
+
+/* =========================================================
+   APPLIED BUTTON
+========================================================= */
+
+.apply-btn.applied-btn {
+  background: #22c55e !important;
+
+  color: #ffffff;
+
+  cursor: not-allowed;
+
+  opacity: 0.9;
+
+  box-shadow: none;
+
+  transform: none;
+}
+
+.apply-btn.applied-btn:hover {
+  background: #22c55e !important;
+
+  transform: none;
+
+  box-shadow: none;
+}
+
+
+/* =========================================================
+   VIEW DETAILS BUTTON
+========================================================= */
+
+.view-btun {
+  padding: 9px 16px;
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 10px;
+
+  background: transparent;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 0.875rem;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+/*
+   Border stays the same on hover.
+*/
+
+.view-btun:hover {
+  border-color: var(--sd-border, #e5e7eb);
+
+  background: var(
+    --sd-primary-soft,
+    #eff6ff
+  );
+
+  color: var(--sd-primary, #3b82f6);
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.browse-empty {
+  text-align: center;
+
+  padding: 50px 25px;
+}
+
+.browse-empty svg {
+  margin-bottom: 12px;
+
+  color: var(--sd-text-secondary, #6b7280);
+}
+
+.browse-empty h2 {
+  margin: 0 0 8px;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 1.15rem;
+
+  font-weight: 600;
+}
+
+.browse-empty p {
+  margin: 0;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.9rem;
+}
+
+
+/* =========================================================
+   MODAL OVERLAY
+========================================================= */
+
+.browse-modal-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 9999;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 20px;
+
+  box-sizing: border-box;
+
+  background: rgba(0, 0, 0, 0.65);
+
+  backdrop-filter: blur(5px);
+}
+
+
+/* =========================================================
+   MODAL CONTAINER
+========================================================= */
+
+.browse-modal-container {
+  width: 100%;
+
+  max-width: 700px;
+
+  max-height: 90vh;
+
+  overflow-y: auto;
+
+  box-sizing: border-box;
+
+  padding: 24px;
+
+  background: var(--sd-surface, #ffffff);
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 14px;
+
+  color: var(--sd-text, #111827);
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.25);
+
+  animation: browse-modal-in 0.2s ease;
+}
+
+@keyframes browse-modal-in {
+  from {
+    opacity: 0;
+
+    transform:
+      translateY(10px)
+      scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0)
+      scale(1);
+  }
+}
+
+
+/* =========================================================
+   MODAL HEADER
+========================================================= */
+
+.browse-modal-header {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 15px;
+
+  margin-bottom: 22px;
+}
+
+.browse-modal-header h2 {
+  margin: 0;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 1.2rem;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   MODAL CLOSE BUTTON
+========================================================= */
+
+.modal-close-btn {
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: #fee2e2;
+
+  color: #ef4444;
+}
+
+
+/* =========================================================
+   FORM
+========================================================= */
+
+.form-row {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 16px;
+
+  margin-bottom: 16px;
+}
+
+.form-group {
+  display: flex;
+
+  flex-direction: column;
+}
+
+.form-group label,
+.browse-modal-container > label {
+  margin-bottom: 7px;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 0.85rem;
+
+  font-weight: 600;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  padding: 11px 12px;
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 9px;
+
+  outline: none;
+
+  background: var(--sd-surface, #ffffff);
+
+  color: var(--sd-text, #111827);
+
+  font-size: 0.9rem;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.form-group input::placeholder {
+  color: var(--sd-text-secondary, #6b7280);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: var(--sd-border, #e5e7eb);
+
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+
+/* =========================================================
+   RESUME UPLOAD
+========================================================= */
+
+.resume-upload-box {
+  margin-top: 8px;
+
+  padding: 22px;
+
+  text-align: center;
+
+  border: 2px dashed var(--sd-border, #e5e7eb);
+
+  border-radius: 12px;
+
+  background: var(--sd-surface, #ffffff);
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.resume-upload-box:hover {
+  border-color: var(--sd-border, #e5e7eb);
+
+  background: var(
+    --sd-hover,
+    #f3f4f6
+  );
+}
+
+.upload-text {
+  margin: 0 0 12px;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.85rem;
+}
+
+
+/* =========================================================
+   CHOOSE FILE BUTTON
+========================================================= */
+
+.choose-file-btn {
+  padding: 9px 16px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background: var(--sd-primary, #3b82f6);
+
+  color: #ffffff;
+
+  font-size: 0.85rem;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.choose-file-btn:hover {
+  background: #2563eb;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   UPLOADED FILE
+========================================================= */
+
+.uploaded-file {
+  margin: 12px 0 0;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 0.85rem;
+
+  font-weight: 500;
+
+  word-break: break-word;
+}
+
+
+/* =========================================================
+   MODAL ACTIONS
+========================================================= */
+
+.browse-modal-actions {
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  margin-top: 22px;
+}
+
+
+/* Cancel */
+
+.cancel-btun {
+  padding: 10px 18px;
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 9px;
+
+  background: transparent;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 0.875rem;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.cancel-btun:hover {
+  border-color: var(--sd-border, #e5e7eb);
+
+  background: var(
+    --sd-hover,
+    #f3f4f6
+  );
+
+  transform: translateY(-1px);
+}
+
+
+/* Submit */
+
+.submit-btn {
+  padding: 10px 18px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background: var(--sd-primary, #3b82f6);
+
+  color: #ffffff;
+
+  font-size: 0.875rem;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.submit-btn:hover {
+  background: #2563eb;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 5px 15px rgba(59, 130, 246, 0.2);
+}
+
+
+/* =========================================================
+   DETAILS MODAL
+========================================================= */
+
+.details-content {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 12px;
+}
+
+.details-content p {
+  margin: 0;
+
+  padding-bottom: 12px;
+
+  border-bottom: 1px solid var(
+    --sd-border,
+    #e5e7eb
+  );
+
+  color: var(
+    --sd-text-secondary,
+    #6b7280
+  );
+
+  font-size: 0.9rem;
+
+  line-height: 1.5;
+}
+
+.details-content p:last-child {
+  border-bottom: none;
+
+  padding-bottom: 0;
+}
+
+.details-content strong {
+  color: var(--sd-text, #111827);
+}
+
+
+/* =========================================================
+   DARK THEME
+========================================================= */
+
+[data-theme="dark"] .browse-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .browse-card:hover {
+  border-color: var(--sd-border, #2a2f3a);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.30);
+}
+
+[data-theme="dark"] .browse-search-box {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.20);
+}
+
+[data-theme="dark"] .browse-search-box:focus-within {
+  border-color: var(--sd-border, #2a2f3a);
+}
+
+[data-theme="dark"] .view-btun:hover {
+  border-color: var(--sd-border, #2a2f3a);
+
+  background: rgba(59, 130, 246, 0.12);
+}
+
+[data-theme="dark"] .resume-upload-box:hover {
+  border-color: var(--sd-border, #2a2f3a);
+
+  background: rgba(59, 130, 246, 0.08);
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+
+  .browse-page-header {
+    margin-bottom: 20px;
+  }
+
+  .browse-page-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .browse-page-header p {
+    font-size: 0.9rem;
+  }
+
+
+  .browse-card {
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 18px;
+
+    padding: 18px;
+  }
+
+
+  .browse-actions {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+  }
+
+
+  .apply-btn,
+  .view-btun {
+    width: 100%;
+  }
+
+
+  .browse-meta {
+    gap: 10px 16px;
+  }
+
+
+  .browse-modal-overlay {
+    padding: 12px;
+  }
+
+
+  .browse-modal-container {
+    max-height: 92vh;
+
+    padding: 20px;
+  }
+
+
+  .form-row {
+    grid-template-columns: 1fr;
+
+    gap: 12px;
+  }
+
+
+  .browse-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+
+  .cancel-btun,
+  .submit-btn {
+    width: 100%;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+  .browse-page-header h1 {
+    font-size: 1.35rem;
+  }
+
+
+  .browse-search-box {
+    padding: 12px 14px;
+  }
+
+
+  .browse-card {
+    padding: 16px;
+
+    border-radius: 12px;
+  }
+
+
+  .browse-actions {
+    grid-template-columns: 1fr;
+  }
+
+
+  .browse-meta {
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 8px;
+  }
+
+
+  .browse-modal-overlay {
+    padding: 8px;
+  }
+
+
+  .browse-modal-container {
+    padding: 16px;
+
+    border-radius: 12px;
+  }
+}

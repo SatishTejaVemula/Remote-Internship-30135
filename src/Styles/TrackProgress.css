@@ -1,0 +1,1050 @@
+/* =========================================================
+   INTERNSHIP SELECT CARD
+========================================================= */
+
+.tp-select-card {
+  background: var(--bg-surface);
+
+  border: 1px solid var(--border);
+
+  border-radius: 14px;
+
+  padding: 20px;
+
+  margin-bottom: 24px;
+}
+
+
+.tp-select-header {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  margin-bottom: 16px;
+}
+
+
+.tp-select-icon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: rgba(99, 102, 241, 0.12);
+
+  color: #6366f1;
+
+  flex-shrink: 0;
+}
+
+
+.tp-select-header h2 {
+  margin: 0 0 4px;
+
+  color: var(--text-primary);
+
+  font-size: 1rem;
+
+  font-weight: 600;
+}
+
+
+.tp-select-header p {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   INTERNSHIP SELECT
+========================================================= */
+
+.internship-select {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  padding: 12px 14px;
+
+  border-radius: 10px;
+
+  border: 1px solid var(--border);
+
+  background: var(--bg-surface);
+
+  color: var(--text-primary);
+
+  font-family: inherit;
+
+  font-size: 14px;
+
+  cursor: pointer;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.internship-select:focus {
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(99, 102, 241, 0.12);
+}
+
+
+/* =========================
+   DARK THEME DROPDOWN ONLY
+========================= */
+
+[data-theme="dark"] .internship-select {
+  background: #111827;
+  color: #ffffff;
+  border-color: #374151;
+  color-scheme: dark;
+}
+
+[data-theme="dark"] .internship-select option {
+  background-color: #111827;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .internship-select option:checked {
+  background-color: #4f46e5;
+  color: #ffffff;
+}
+
+
+/* =========================================================
+   STUDENT SECTION
+========================================================= */
+
+.tp-students-section {
+  margin-bottom: 24px;
+}
+
+
+.tp-section-header {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  margin-bottom: 16px;
+}
+
+
+.tp-section-header h2 {
+  margin: 0 0 4px;
+
+  color: var(--text-primary);
+
+  font-size: 1.15rem;
+
+  font-weight: 600;
+}
+
+
+.tp-section-header p {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+}
+
+
+.tp-count {
+  min-width: 32px;
+  height: 32px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 9px;
+
+  background: rgba(99, 102, 241, 0.12);
+
+  color: #6366f1;
+
+  font-size: 13px;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   STUDENT GRID
+========================================================= */
+
+.stats-grid-tp {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fit,
+      minmax(240px, 1fr)
+    );
+
+  gap: 16px;
+}
+
+
+.tp-student-card {
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 13px;
+
+  min-height: 82px;
+
+  padding: 17px;
+
+  box-sizing: border-box;
+
+  background: var(--bg-surface);
+
+  border: 1px solid var(--border);
+
+  border-radius: 14px;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.tp-student-card:hover {
+  background: var(--bg-surface-hover);
+
+  transform: translateY(-2px);
+}
+
+
+.tp-student-card.selected {
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(99, 102, 241, 0.1);
+}
+
+
+.tp-student-icon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: rgba(59, 130, 246, 0.12);
+
+  color: #3b82f6;
+
+  flex-shrink: 0;
+}
+
+
+.tp-student-info {
+  min-width: 0;
+}
+
+
+.tp-student-info h3 {
+  margin: 0 0 4px;
+
+  color: var(--text-primary);
+
+  font-size: 15px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+}
+
+
+.tp-student-info p {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 12px;
+}
+
+
+.tp-selected-icon {
+  margin-left: auto;
+
+  color: #6366f1;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.tp-empty {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  min-height: 200px;
+
+  text-align: center;
+
+  color: var(--text-secondary);
+}
+
+
+.tp-empty svg {
+  margin-bottom: 12px;
+
+  color: var(--text-muted);
+}
+
+
+.tp-empty h3 {
+  margin: 0 0 6px;
+
+  color: var(--text-primary);
+
+  font-size: 1rem;
+}
+
+
+.tp-empty p {
+  max-width: 450px;
+
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 14px;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   PROGRESS SECTION
+========================================================= */
+
+.tp-progress-section {
+  background: var(--bg-surface);
+
+  border: 1px solid var(--border);
+
+  border-radius: 16px;
+
+  padding: 22px;
+
+  margin-bottom: 24px;
+}
+
+
+.tp-progress-header {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-bottom: 16px;
+}
+
+
+.tp-progress-header h2 {
+  margin: 0 0 5px;
+
+  color: var(--text-primary);
+
+  font-size: 1.2rem;
+
+  font-weight: 650;
+}
+
+
+.tp-progress-header p {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+}
+
+
+.tp-progress-value {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  min-width: 60px;
+
+  height: 38px;
+
+  padding: 0 12px;
+
+  border-radius: 10px;
+
+  background:
+    rgba(99, 102, 241, 0.12);
+
+  color: #6366f1;
+
+  font-size: 16px;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   PROGRESS BAR
+========================================================= */
+
+.progress-bar {
+  width: 100%;
+
+  height: 10px;
+
+  margin-bottom: 24px;
+
+  background: var(--border);
+
+  border-radius: 999px;
+
+  overflow: hidden;
+}
+
+
+.progress-fill {
+  height: 100%;
+
+  border-radius: 999px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #4f46e5,
+      #8b5cf6
+    );
+
+  transition:
+    width 0.5s ease;
+}
+
+
+/* =========================================================
+   TASK ASSIGNMENT
+========================================================= */
+
+.task-assignment {
+  padding: 20px;
+
+  margin-bottom: 24px;
+
+  border-radius: 14px;
+
+  background: var(--bg-surface-hover);
+
+  border: 1px solid var(--border);
+}
+
+
+.task-assignment h3 {
+  margin: 0 0 5px;
+
+  color: var(--text-primary);
+
+  font-size: 1rem;
+}
+
+
+.task-assignment > p {
+  margin: 0 0 16px;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   TASK INPUT
+========================================================= */
+
+.task-input {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  padding: 12px 14px;
+
+  border: 1px solid var(--border);
+
+  border-radius: 10px;
+
+  background: var(--bg-surface);
+
+  color: var(--text-primary);
+
+  font-family: inherit;
+
+  font-size: 14px;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.task-input::placeholder {
+  color: var(--text-muted);
+}
+
+
+.task-input:focus {
+  border-color: #6366f1;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(99, 102, 241, 0.12);
+}
+
+
+/* =========================================================
+   FILE DROPZONE
+========================================================= */
+
+.file-dropzone {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 8px;
+
+  margin-top: 14px;
+
+  padding: 22px;
+
+  border: 2px dashed var(--border);
+
+  border-radius: 13px;
+
+  background: var(--bg-surface);
+
+  text-align: center;
+
+  color: var(--text-secondary);
+
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+
+.file-dropzone:hover {
+  border-color: #6366f1;
+
+  background:
+    rgba(99, 102, 241, 0.04);
+}
+
+
+.file-dropzone > svg {
+  color: #6366f1;
+}
+
+
+.file-dropzone p {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+}
+
+
+.file-dropzone input[type="file"] {
+  max-width: 100%;
+
+  color: var(--text-secondary);
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   SELECTED FILE
+========================================================= */
+
+.selected-file {
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  max-width: 100%;
+
+  padding: 7px 10px;
+
+  border-radius: 8px;
+
+  background:
+    rgba(34, 197, 94, 0.1);
+
+  color: #22c55e;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+
+.selected-file span {
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   ASSIGN BUTTON
+========================================================= */
+
+.assign-btn {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 8px;
+
+  margin-top: 14px;
+
+  padding: 11px 18px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #4f46e5,
+      #7c3aed
+    );
+
+  color: white;
+
+  font-family: inherit;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.assign-btn:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 20px
+    rgba(99, 102, 241, 0.25);
+}
+
+
+/* =========================================================
+   TASKS
+========================================================= */
+
+.tp-tasks {
+  margin-top: 10px;
+}
+
+
+.tp-tasks-header {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  margin-bottom: 14px;
+}
+
+
+.tp-tasks-header h3 {
+  margin: 0 0 4px;
+
+  color: var(--text-primary);
+
+  font-size: 1rem;
+}
+
+
+.tp-tasks-header p {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+}
+
+
+.tp-tasks-header > span {
+  min-width: 30px;
+  height: 30px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 8px;
+
+  background:
+    rgba(99, 102, 241, 0.12);
+
+  color: #6366f1;
+
+  font-size: 12px;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   TASK CARD
+========================================================= */
+
+.tp-task-card {
+  padding: 17px;
+
+  margin-bottom: 12px;
+
+  background: var(--bg-surface);
+
+  border: 1px solid var(--border);
+
+  border-radius: 13px;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+.tp-task-card:hover {
+  background: var(--bg-surface-hover);
+
+  transform: translateY(-1px);
+}
+
+
+.tp-task-top {
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 15px;
+}
+
+
+.tp-task-top h4 {
+  margin: 0 0 5px;
+
+  color: var(--text-primary);
+
+  font-size: 14px;
+}
+
+
+.tp-task-top p {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 12px;
+}
+
+
+.tp-task-top strong {
+  color: var(--text-primary);
+}
+
+
+/* =========================================================
+   TASK STATUS
+========================================================= */
+
+.task-status {
+  flex-shrink: 0;
+
+  padding: 6px 10px;
+
+  border-radius: 999px;
+
+  font-size: 10px;
+
+  font-weight: 700;
+
+  text-transform: uppercase;
+}
+
+
+.task-status.completed {
+  background:
+    rgba(34, 197, 94, 0.12);
+
+  color: #22c55e;
+}
+
+
+.task-status.pending {
+  background:
+    rgba(245, 158, 11, 0.12);
+
+  color: #f59e0b;
+}
+
+
+.task-status.in-progress {
+  background:
+    rgba(59, 130, 246, 0.12);
+
+  color: #3b82f6;
+}
+
+
+/* =========================================================
+   TASK SUBMISSION
+========================================================= */
+
+.task-submission {
+  margin-top: 15px;
+
+  padding-top: 14px;
+
+  border-top: 1px solid var(--border);
+}
+
+
+.submission-item {
+  margin-bottom: 12px;
+}
+
+
+.submission-item strong {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: var(--text-primary);
+
+  font-size: 12px;
+}
+
+
+.submission-item p {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 13px;
+
+  line-height: 1.5;
+}
+
+
+.task-file-link {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 7px;
+
+  max-width: 100%;
+
+  color: #6366f1;
+
+  text-decoration: none;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  word-break: break-word;
+}
+
+
+.task-file-link:hover {
+  opacity: 0.75;
+}
+
+
+.task-file-link span {
+  color: var(--text-secondary);
+
+  font-weight: 400;
+}
+
+
+/* =========================================================
+   NO TASKS
+========================================================= */
+
+.tp-no-tasks {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 35px 20px;
+
+  text-align: center;
+
+  color: var(--text-secondary);
+}
+
+
+.tp-no-tasks svg {
+  margin-bottom: 10px;
+
+  color: var(--text-muted);
+}
+
+
+.tp-no-tasks h4 {
+  margin: 0 0 5px;
+
+  color: var(--text-primary);
+
+  font-size: 14px;
+}
+
+
+.tp-no-tasks p {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+
+  .stats-grid-tp {
+    grid-template-columns: 1fr;
+  }
+
+
+  .tp-progress-section {
+    padding: 18px;
+  }
+
+
+  .tp-progress-header {
+    align-items: flex-start;
+  }
+
+
+  .tp-progress-value {
+    min-width: 52px;
+  }
+
+
+  .application-details {
+    grid-template-columns: 1fr;
+  }
+
+
+  .task-assignment {
+    padding: 16px;
+  }
+
+
+  .assign-btn {
+    width: 100%;
+  }
+
+
+  .tp-task-top {
+    flex-direction: column;
+  }
+
+
+  .task-status {
+    width: fit-content;
+  }
+}
