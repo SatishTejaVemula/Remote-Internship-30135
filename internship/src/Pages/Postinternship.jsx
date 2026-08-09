@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Headerfordash from "../Components/Headerfordash";
 import Loader from "../Components/Loader";
 import "../Styles/Postinternship.css";
 import toast from "react-hot-toast";
+
 import {
   FileText,
   Users,
@@ -18,17 +19,23 @@ const Postinternship = () => {
 
   const [internships, setInternships] = useState([]);
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("token");
-  const admin = JSON.parse(localStorage.getItem("adminProfile"));
-    const employerId = admin?.id;
 
-  if (!employerId) {
-  toast("Employer not found. Please login again.", {
-        icon: "⚠️",
-      });
-  navigate("/login");
-  return;
-}
+  const storedAdmin =
+    localStorage.getItem("adminProfile");
+
+  const admin = storedAdmin
+    ? JSON.parse(storedAdmin)
+    : {};
+
+  const employerId = admin?.id;
+
+  const token =
+    localStorage.getItem("token");
+
+
+  /* =========================================================
+     FORM
+  ========================================================= */
 
   const [form, setForm] = useState({
     title: "",
@@ -41,57 +48,153 @@ const Postinternship = () => {
     skills: "",
   });
 
+
+  /* =========================================================
+     LOAD INTERNSHIPS
+  ========================================================= */
+
   useEffect(() => {
-    setLoading(true);
+    if (!employerId) {
+      setLoading(false);
 
-    fetch(`https://remote-internship-30135.onrender.com/api/internships/employer/${employerId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setInternships(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setLoading(false);
+      toast("Employer not found. Please login again.", {
+        icon: "⚠️",
       });
-  }, []);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+      navigate("/login");
+
+      return;
+    }
+
+    loadInternships();
+  }, [employerId]);
+
+
+  const loadInternships = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetch(
+        `https://remote-internship-30135.onrender.com/api/internships/employer/${employerId}`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(
+          "Failed to fetch internships"
+        );
+      }
+
+      const data = await res.json();
+
+      setInternships(
+        Array.isArray(data)
+          ? data
+          : []
+      );
+
+    } catch (error) {
+      console.error(
+        "Error loading internships:",
+        error
+      );
+
+      setInternships([]);
+
+      toast.error(
+        "Couldn't load internships."
+      );
+
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmit = async () => {
-    if (!form.title || !form.duration || !form.location) return;
+
+  /* =========================================================
+     INPUT CHANGE
+  ========================================================= */
+
+  const handleChange = (e) => {
+    const {
+      name,
+      value,
+    } = e.target;
+
+    setForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  };
+
+
+  /* =========================================================
+     POST INTERNSHIP
+  ========================================================= */
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (
+      !form.title.trim() ||
+      !form.duration ||
+      !form.location
+    ) {
+      toast.error(
+        "Please fill in all required fields."
+      );
+
+      return;
+    }
 
     try {
       const res = await fetch(
         `https://remote-internship-30135.onrender.com/api/internships?employerId=${employerId}`,
         {
           method: "POST",
+
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`,
           },
+
           body: JSON.stringify({
             ...form,
-            companyname: admin.companyname || "",
+            companyname:
+              admin.companyname || "",
           }),
         }
       );
-      
-      if (!res.ok) throw new Error("Failed");
+
+      if (!res.ok) {
+        throw new Error(
+          "Failed to post internship"
+        );
+      }
 
       const data = await res.json();
 
-      setInternships([data, ...internships]);
+      setInternships((previous) => [
+        data,
+        ...previous,
+      ]);
 
-      toast.success("Internship Posted Successfully!");
+      toast.success(
+        "Internship posted successfully!"
+      );
 
       setForm({
         title: "",
+        companyname:
+          admin?.companyname || "",
         duration: "",
         location: "Remote",
         stipend: "",
@@ -99,199 +202,568 @@ const Postinternship = () => {
         requirements: "",
         skills: "",
       });
-    } catch (err) {
-      toast("Error posting internship", {
-        icon: "⚠️",
-      });
+
+    } catch (error) {
+      console.error(
+        "Error posting internship:",
+        error
+      );
+
+      toast.error(
+        "Error posting internship."
+      );
     }
   };
 
 
+  /* =========================================================
+     DELETE INTERNSHIP
+  ========================================================= */
+
   const handleDelete = async (id) => {
-  try {
-    const res = await fetch(`https://remote-internship-30135.onrender.com/api/internships/delete/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      const res = await fetch(
+        `https://remote-internship-30135.onrender.com/api/internships/delete/${id}`,
+        {
+          method: "DELETE",
 
-    const text = await res.text();
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+          },
+        }
+      );
 
-    if (!res.ok) {
-      toast.error(text);
-      return;
+      const text =
+        await res.text();
+
+      if (!res.ok) {
+        toast.error(
+          text ||
+            "Unable to delete internship."
+        );
+
+        return;
+      }
+
+      setInternships((previous) =>
+        previous.filter(
+          (item) => item.id !== id
+        )
+      );
+
+      toast.success(
+        "Internship deleted successfully."
+      );
+
+    } catch (error) {
+      console.error(
+        "Delete error:",
+        error
+      );
+
+      toast.error(
+        "Error deleting internship."
+      );
     }
+  };
 
-    setInternships(internships.filter((item) => item.id !== id));
-  } catch (err) {
-  }
-};
+
+  /* =========================================================
+     RENDER
+  ========================================================= */
 
   return (
     <>
-      {loading && <Loader />}
-      
-      <div>
-        <aside className="admin-sidebar">
-          <button onClick={() => navigate("/admin-dashboard")}>
-            <LayoutDashboard size={18} />
-            Dashboard
-          </button>
 
-          <button
-            className="active"
-            onClick={() => navigate("/post-internship")}
-          >
-            <FileText size={18} />
-            Post Internship
-          </button>
+      <div className="admin-layout">
 
-          <button onClick={() => navigate("/applications")}>
-            <Users size={18} />
-            Applications
-          </button>
 
-          <button onClick={() => navigate("/track-progress")}>
-            <TrendingUp size={18} />
-            Track Progress
-          </button>
+        {/* ===================================================
+            SIDEBAR
+        =================================================== */}
 
-          <button onClick={() => navigate("/evaluations")}>
-            <ClipboardCheck size={18} />
-            Evaluations
-          </button>
+        <aside className="sd-sidebar">
 
-          <button onClick={() => navigate("/admin-profile")}>
-            <User size={18} />
-            Profile
-          </button>
+          <nav className="sd-nav">
+
+            <NavButton
+              icon={LayoutDashboard}
+              label="Dashboard"
+              onClick={() =>
+                navigate(
+                  "/admin-dashboard"
+                )
+              }
+            />
+
+
+            <NavButton
+              active
+              icon={FileText}
+              label="Post Internship"
+              onClick={() =>
+                navigate(
+                  "/post-internship"
+                )
+              }
+            />
+
+
+            <NavButton
+              icon={Users}
+              label="Applications"
+              onClick={() =>
+                navigate(
+                  "/applications"
+                )
+              }
+            />
+
+
+            <NavButton
+              icon={TrendingUp}
+              label="Track Progress"
+              onClick={() =>
+                navigate(
+                  "/track-progress"
+                )
+              }
+            />
+
+
+            <NavButton
+              icon={ClipboardCheck}
+              label="Evaluations"
+              onClick={() =>
+                navigate(
+                  "/evaluations"
+                )
+              }
+            />
+
+
+            <NavButton
+              icon={User}
+              label="Profile"
+              onClick={() =>
+                navigate(
+                  "/admin-profile"
+                )
+              }
+            />
+
+          </nav>
+
         </aside>
 
-        <main className="admin-main">
-          <div className="page-header">
-            <h1>Post New Internship</h1>
-            <p>Create a new internship opportunity for students.</p>
-          </div>
 
-          <div className="form-card">
-            <h2>Internship Details</h2>
+        {/* ===================================================
+            MAIN CONTENT
+        =================================================== */}
 
-            <input
-              name="title"
-              placeholder="Internship Title"
-              value={form.title}
-              onChange={handleChange}
-            />
+        <main className="sd-main">
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "20px",
-              }}
-            >
-              <select
-                name="duration"
-                value={form.duration}
-                onChange={handleChange}
-              >
-                <option value="">Select duration</option>
-                <option>1 Month</option>
-                <option>3 Months</option>
-                <option>6 Months</option>
-              </select>
+          {loading ? (
 
-              <select
-                name="location"
-                value={form.location}
-                onChange={handleChange}
-              >
-                <option>Remote</option>
-                <option>Onsite</option>
-                <option>Hybrid</option>
-              </select>
-            </div>
+            <Loader />
 
-            <input
-              name="stipend"
-              placeholder="Monthly Stipend"
-              value={form.stipend}
-              onChange={handleChange}
-            />
+          ) : (
 
-            <textarea
-              name="description"
-              placeholder="Description"
-              value={form.description}
-              onChange={handleChange}
-            />
+            <>
 
-            <textarea
-              name="requirements"
-              placeholder="Requirements"
-              value={form.requirements}
-              onChange={handleChange}
-            />
+              {/* =============================================
+                  PAGE HEADER
+              ============================================= */}
 
-            <input
-              name="skills"
-              placeholder="Skills (comma-separated)"
-              value={form.skills}
-              onChange={handleChange}
-            />
+              <div className="sd-header-section">
 
-            <div
-              style={{
-                marginTop: "20px",
-                display: "flex",
-                gap: "15px",
-              }}
-            >
-              <button onClick={handleSubmit}>Post Internship</button>
+                <h1>
+                  Post New Internship
+                </h1>
 
-              <button
-                style={{ background: "#f3f4f6", color: "#111" }}
-                onClick={() => navigate("/admin-dashboard")}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+                <p>
+                  Create a new internship
+                  opportunity for students.
+                </p>
 
-          <div className="dashboard-card">
-            <h2>Posted Internships</h2>
+              </div>
 
-            {internships.length === 0 ? (
-              <p>No internships posted yet.</p>
-            ) : (
-              internships.map((item) => (
-                <div key={item.id} className="application-card">
-                  <div>
-                    <h3>{item.title}</h3>
-                    <p>
-                      <strong>Duration:</strong> {item.duration}
-                    </p>
-                    <p>
-                      <strong>Location:</strong> {item.location}
-                    </p>
-                    <p>{item.description}</p>
+
+              {/* =============================================
+                  FORM CARD
+              ============================================= */}
+
+              <section className="post-form-card">
+
+                <h2>
+                  Internship Details
+                </h2>
+
+
+                <form
+                  onSubmit={handleSubmit}
+                >
+
+                  {/* Title */}
+
+                  <div className="form-group">
+
+                    <label htmlFor="title">
+                      Internship Title
+                    </label>
+
+                    <input
+                      id="title"
+                      name="title"
+                      type="text"
+                      placeholder="Enter internship title"
+                      value={form.title}
+                      onChange={handleChange}
+                    />
+
                   </div>
 
-                  <button
-                    className="delete-btn"
-                    onClick={() => handleDelete(item.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
+
+                  {/* Duration + Location */}
+
+                  <div className="form-grid">
+
+                    <div className="form-group">
+
+                      <label htmlFor="duration">
+                        Duration
+                      </label>
+
+                      <select
+                        id="duration"
+                        name="duration"
+                        value={form.duration}
+                        onChange={handleChange}
+                      >
+
+                        <option value="">
+                          Select duration
+                        </option>
+
+                        <option value="1 Month">
+                          1 Month
+                        </option>
+
+                        <option value="3 Months">
+                          3 Months
+                        </option>
+
+                        <option value="6 Months">
+                          6 Months
+                        </option>
+
+                      </select>
+
+                    </div>
+
+
+                    <div className="form-group">
+
+                      <label htmlFor="location">
+                        Location
+                      </label>
+
+                      <select
+                        id="location"
+                        name="location"
+                        value={form.location}
+                        onChange={handleChange}
+                      >
+
+                        <option value="Remote">
+                          Remote
+                        </option>
+
+                        <option value="Onsite">
+                          Onsite
+                        </option>
+
+                        <option value="Hybrid">
+                          Hybrid
+                        </option>
+
+                      </select>
+
+                    </div>
+
+                  </div>
+
+
+                  {/* Stipend */}
+
+                  <div className="form-group">
+
+                    <label htmlFor="stipend">
+                      Monthly Stipend
+                    </label>
+
+                    <input
+                      id="stipend"
+                      name="stipend"
+                      type="text"
+                      placeholder="Example: ₹10,000"
+                      value={form.stipend}
+                      onChange={handleChange}
+                    />
+
+                  </div>
+
+
+                  {/* Description */}
+
+                  <div className="form-group">
+
+                    <label htmlFor="description">
+                      Description
+                    </label>
+
+                    <textarea
+                      id="description"
+                      name="description"
+                      placeholder="Describe the internship..."
+                      value={
+                        form.description
+                      }
+                      onChange={handleChange}
+                    />
+
+                  </div>
+
+
+                  {/* Requirements */}
+
+                  <div className="form-group">
+
+                    <label htmlFor="requirements">
+                      Requirements
+                    </label>
+
+                    <textarea
+                      id="requirements"
+                      name="requirements"
+                      placeholder="Enter internship requirements..."
+                      value={
+                        form.requirements
+                      }
+                      onChange={handleChange}
+                    />
+
+                  </div>
+
+
+                  {/* Skills */}
+
+                  <div className="form-group">
+
+                    <label htmlFor="skills">
+                      Skills
+                    </label>
+
+                    <input
+                      id="skills"
+                      name="skills"
+                      type="text"
+                      placeholder="Java, React, Python..."
+                      value={form.skills}
+                      onChange={handleChange}
+                    />
+
+                    <small>
+                      Separate skills with
+                      commas.
+                    </small>
+
+                  </div>
+
+
+                  {/* Buttons */}
+
+                  <div className="form-actions">
+
+                    <button
+                      type="submit"
+                      className="post-submit-btn"
+                    >
+                      <FileText
+                        size={18}
+                      />
+
+                      Post Internship
+                    </button>
+
+
+                    <button
+                      type="button"
+                      className="post-cancel-btn"
+                      onClick={() =>
+                        navigate(
+                          "/admin-dashboard"
+                        )
+                      }
+                    >
+                      Cancel
+                    </button>
+
+                  </div>
+
+                </form>
+
+              </section>
+
+
+              {/* =============================================
+                  POSTED INTERNSHIPS
+              ============================================= */}
+
+              <section className="sd-card">
+
+                <h2>
+                  Posted Internships
+                </h2>
+
+
+                {internships.length ===
+                0 ? (
+
+                  <div className="post-empty">
+
+                    <FileText
+                      size={40}
+                    />
+
+                    <h3>
+                      No internships posted
+                    </h3>
+
+                    <p>
+                      Your posted internships
+                      will appear here.
+                    </p>
+
+                  </div>
+
+                ) : (
+
+                  internships.map(
+                    (item) => (
+
+                      <div
+                        key={item.id}
+                        className="posted-internship-card"
+                      >
+
+                        <div className="posted-internship-info">
+
+                          <h3>
+                            {item.title}
+                          </h3>
+
+                          <div className="internship-meta">
+
+                            <span>
+                              <strong>
+                                Duration:
+                              </strong>{" "}
+                              {item.duration ||
+                                "N/A"}
+                            </span>
+
+                            <span>
+                              <strong>
+                                Location:
+                              </strong>{" "}
+                              {item.location ||
+                                "N/A"}
+                            </span>
+
+                            <span>
+                              <strong>
+                                Stipend:
+                              </strong>{" "}
+                              {item.stipend ||
+                                "Not specified"}
+                            </span>
+
+                          </div>
+
+                          {item.description && (
+                            <p>
+                              {item.description}
+                            </p>
+                          )}
+
+                        </div>
+
+
+                        <button
+                          type="button"
+                          className="post-delete-btn"
+                          onClick={() =>
+                            handleDelete(
+                              item.id
+                            )
+                          }
+                        >
+                          Delete
+                        </button>
+
+                      </div>
+
+                    )
+                  )
+
+                )}
+
+              </section>
+
+            </>
+          )}
+
         </main>
+
       </div>
     </>
   );
 };
+
+
+/* =========================================================
+   NAV BUTTON
+========================================================= */
+
+function NavButton({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+}) {
+  return (
+    <button
+      type="button"
+      className={`sd-nav-button ${
+        active ? "active" : ""
+      }`}
+      onClick={onClick}
+      aria-current={
+        active
+          ? "page"
+          : undefined
+      }
+    >
+      <Icon size={20} />
+
+      <span>
+        {label}
+      </span>
+    </button>
+  );
+}
+
 
 export default Postinternship;

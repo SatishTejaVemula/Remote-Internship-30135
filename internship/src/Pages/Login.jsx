@@ -16,13 +16,19 @@ const Login = () => {
 
   const [showPassword, setShowPassword] = useState(false);
 
+  // Login loading state
+  const [loggingIn, setLoggingIn] = useState(false);
+
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("isLoggedIn");
     const storedRole = localStorage.getItem("role");
 
     if (isLoggedIn) {
-      if (storedRole === "student") navigate("/student-dashboard");
-      else if (storedRole === "admin") navigate("/admin-dashboard");
+      if (storedRole === "student") {
+        navigate("/student-dashboard");
+      } else if (storedRole === "admin") {
+        navigate("/admin-dashboard");
+      }
     }
   }, [navigate]);
 
@@ -32,18 +38,23 @@ const Login = () => {
       return;
     }
 
+    setLoggingIn(true);
+
     try {
-      const response = await fetch("https://remote-internship-30135.onrender.com/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-          role: role,
-        }),
-      });
+      const response = await fetch(
+        "https://remote-internship-30135.onrender.com/api/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password,
+            role: role,
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -51,6 +62,7 @@ const Login = () => {
         toast.error(data.message || "Invalid credentials");
         return;
       }
+
       localStorage.setItem("token", data.token);
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("role", role);
@@ -79,7 +91,6 @@ const Login = () => {
 
         toast.success("Login Successful");
         navigate("/student-dashboard");
-
       } else if (role === "admin") {
         localStorage.setItem(
           "adminProfile",
@@ -93,9 +104,10 @@ const Login = () => {
 
         navigate("/admin-dashboard");
       }
-
     } catch (error) {
       toast.error("Backend Is not running");
+    } finally {
+      setLoggingIn(false);
     }
   };
 
@@ -130,7 +142,10 @@ const Login = () => {
           </button>
         </div>
 
-        <h2>Login as {role === "student" ? "Student" : "Admin"}</h2>
+        <h2>
+          Login as {role === "student" ? "Student" : "Admin"}
+        </h2>
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -143,6 +158,7 @@ const Login = () => {
             placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={loggingIn}
           />
 
           <div className="password-wrapper">
@@ -152,21 +168,34 @@ const Login = () => {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={loggingIn}
             />
 
             <span
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={() =>
+                !loggingIn && setShowPassword(!showPassword)
+              }
               className="eye-icon"
             >
               {showPassword ? <FaEyeSlash /> : <FaEye />}
             </span>
           </div>
 
-          <button type="submit" className="login-btn">
-            LOGIN
+          <button
+            type="submit"
+            className={`login-btn ${loggingIn ? "loading" : ""}`}
+            disabled={loggingIn}
+          >
+            {loggingIn ? (
+              <>
+                <span className="login-spinner"></span>
+                Logging in...
+              </>
+            ) : (
+              "LOGIN"
+            )}
           </button>
         </form>
-
 
         <Link to="/Forgetpass" className="forgot">
           Forgot Password?

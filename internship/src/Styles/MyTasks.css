@@ -1,246 +1,875 @@
-/* ==========================
-   TASK PROGRESS CARD
-========================== */
 
-.task-progress-card{
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 24px;
+
+.page-header {
   margin-bottom: 24px;
-
-  backdrop-filter: blur(12px);
 }
 
-.task-progress-card h3{
-  color: var(--text-primary);
-  margin-bottom: 15px;
+.page-header h1 {
+  margin: 0 0 5px;
+
+  font-size: 1.75rem;
+  font-weight: 700;
+
+  color: var(--sd-text, #111827);
 }
 
-.progress-bar{
-  height: 12px;
-  border-radius: 999px;
-  background: rgba(255,255,255,.08);
+.page-header p {
+  margin: 0;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.95rem;
+}
+
+
+/* =========================================================
+   TASK PROGRESS CARD
+========================================================= */
+
+.task-progress-card {
+  background: var(--sd-surface, #ffffff);
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 14px;
+
+  padding: 22px;
+
+  margin-bottom: 20px;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03);
+
+  transition:
+    background-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+
+/* No border color change */
+
+.task-progress-card:hover {
+  border-color: var(--sd-border, #e5e7eb);
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.06);
+}
+
+.task-progress-card h3 {
+  margin: 0 0 16px;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 1.15rem;
+
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   PROGRESS BAR
+========================================================= */
+
+.progress-bar {
+  width: 100%;
+
+  height: 10px;
+
+  margin: 10px 0;
+
+  border-radius: 9999px;
+
+  background: var(--sd-border, #e5e7eb);
+
   overflow: hidden;
 }
 
-.progress-fill{
+.progress-fill {
   height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    #4f46e5,
-    #8b5cf6
-  );
+
+  border-radius: 9999px;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--sd-primary, #3b82f6),
+      #22c55e
+    );
+
+  transition: width 0.5s ease;
 }
 
-.progress-percent{
+
+/* Percentage */
+
+.task-progress-card > strong {
+  display: block;
+
   margin-top: 10px;
-  color: var(--text-primary);
-  font-size: 1.2rem;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 1.1rem;
+
   font-weight: 700;
 }
 
-/* ==========================
-   TASK CARD
-========================== */
 
-.task-card{
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 24px;
+/* =========================================================
+   TASK CARD
+========================================================= */
+
+.task-card {
+  background: var(--sd-surface, #ffffff);
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 14px;
+
+  padding: 22px;
+
   margin-bottom: 20px;
 
-  transition: .3s;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03);
+
+  transition:
+    background-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
 }
 
-.task-card:hover{
-  background: var(--bg-surface-hover);
-  border-color: var(--border-hover);
-  transform: translateY(-3px);
+
+/* No border color change */
+
+.task-card:hover {
+  border-color: var(--sd-border, #e5e7eb);
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.06);
 }
+
 
 .task-card h3,
-.task-card h4{
-  color: var(--text-primary);
-  margin-bottom: 8px;
-}
+.task-card h4 {
+  margin: 0 0 8px;
 
-.task-card p{
-  color: var(--text-secondary);
-}
+  color: var(--sd-text, #111827);
 
-/* ==========================
-   COMPLETED TASK
-========================== */
+  font-size: 1.1rem;
 
-.completed-task{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-
-  background: var(--bg-surface);
-  border:1px solid rgba(34,197,94,.25);
-
-  border-radius:20px;
-  padding:24px;
-  margin-bottom:20px;
-}
-
-.completed-status{
-  color:#22c55e;
-  font-weight:700;
-  margin:12px 0;
-}
-
-/* ==========================
-   BUTTONS
-========================== */
-
-.submit-task-btn{
-  margin-top:15px;
-
-  padding:10px 18px;
-  border-radius:12px;
-
-  background:linear-gradient(
-    135deg,
-    #6366f1,
-    #8b5cf6
-  );
-
-  color:white;
-  font-weight:600;
-}
-
-.submit-task-btn:hover{
-  transform:translateY(-2px);
-}
-
-.delete-btn{
-  background:rgba(239,68,68,.12);
-  color:#ef4444;
-  border:1px solid rgba(239,68,68,.3);
-
-  padding:10px 18px;
-  border-radius:12px;
-}
-
-.delete-btn:hover{
-  background:rgba(239,68,68,.2);
-}
-
-.view-btn{
-  display:inline-block;
-
-  margin-top:10px;
-  padding:8px 14px;
-
-  border-radius:10px;
- border: 1px solid rgba(59, 130, 246, 0.3);
-  background: transparent;
-  color: white;
   font-weight: 600;
-  transition: 0.25s;
 }
 
-.view-btn:hover{
-  background:rgba(59,130,246,.25);
+
+.task-card p {
+  margin: 0;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.9rem;
 }
 
-/* ==========================
+
+/* =========================================================
+   SUBMIT TASK BUTTON
+========================================================= */
+
+.submit-task-btn {
+  margin-top: 16px;
+
+  padding: 10px 18px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background: var(--sd-primary, #3b82f6);
+
+  color: #ffffff;
+
+  font-size: 0.875rem;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.submit-task-btn:hover {
+  background: #2563eb;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 5px 15px rgba(59, 130, 246, 0.2);
+}
+
+
+/* =========================================================
+   COMPLETED TASK
+========================================================= */
+
+.completed-task {
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: flex-start;
+
+  gap: 24px;
+
+  background: var(--sd-surface, #ffffff);
+
+  border: 1px solid rgba(34, 197, 94, 0.3);
+
+  border-radius: 14px;
+
+  padding: 22px;
+
+  margin-bottom: 20px;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03);
+
+  transition:
+    background-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+
+.completed-task:hover {
+  border-color: rgba(34, 197, 94, 0.3);
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.06);
+}
+
+
+.completed-task h3,
+.completed-task h4 {
+  margin: 0 0 8px;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 1.1rem;
+
+  font-weight: 600;
+}
+
+
+.completed-task p {
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.9rem;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   COMPLETED STATUS
+========================================================= */
+
+.completed-status {
+  margin: 12px 0;
+
+  color: #22c55e !important;
+
+  font-size: 0.875rem;
+
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   VIEW SUBMITTED FILE BUTTON
+========================================================= */
+
+.view-btn {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  margin-top: 10px;
+
+  padding: 9px 15px;
+
+  border-radius: 10px;
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  background: transparent;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 0.85rem;
+
+  font-weight: 600;
+
+  text-decoration: none;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+/* No border change */
+
+.view-btn:hover {
+  border-color: var(--sd-border, #e5e7eb);
+
+  background:
+    var(--sd-primary-soft, #eff6ff);
+
+  color: var(--sd-primary, #3b82f6);
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   DELETE BUTTON
+========================================================= */
+
+.delete-btn {
+  padding: 10px 18px;
+
+  border-radius: 10px;
+
+  border: none;
+
+  background: rgba(239, 68, 68, 0.12);
+
+  color: #ef4444;
+
+  font-size: 0.875rem;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.20);
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
    EMPTY STATE
-========================== */
+========================================================= */
 
-.empty-task-card{
-  background:var(--bg-surface);
-  border:1px solid var(--border);
-  border-radius:18px;
+.empty-task-card {
+  background: var(--sd-surface, #ffffff);
 
-  padding:24px;
-  text-align:center;
+  border: 1px solid var(--sd-border, #e5e7eb);
 
-  color:var(--text-secondary);
+  border-radius: 14px;
+
+  padding: 30px 22px;
+
+  margin-bottom: 20px;
+
+  text-align: center;
+
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
-/* ==========================
+
+.empty-task-card p {
+  margin: 0;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.9rem;
+}
+
+
+/* =========================================================
+   MODAL OVERLAY
+========================================================= */
+
+.modal-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 9999;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 20px;
+
+  box-sizing: border-box;
+
+  background: rgba(0, 0, 0, 0.65);
+
+  backdrop-filter: blur(5px);
+}
+
+
+/* =========================================================
    MODAL
-========================== */
+========================================================= */
 
-.modal-overlay{
-  position:fixed;
-  inset:0;
+.modal-container {
+  width: min(650px, 92%);
 
-  background:rgba(0,0,0,.7);
+  max-height: 90vh;
 
-  display:flex;
-  justify-content:center;
-  align-items:center;
+  overflow-y: auto;
 
-  z-index:9999;
+  box-sizing: border-box;
+
+  padding: 24px;
+
+  background: var(--sd-surface, #ffffff);
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 14px;
+
+  color: var(--sd-text, #111827);
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.25);
+
+  animation: task-modal-in 0.2s ease;
 }
 
-.modal-container{
-  width:min(650px,90%);
-  background:var(--bg-surface);
 
-  border:1px solid var(--border);
-  border-radius:20px;
+@keyframes task-modal-in {
+  from {
+    opacity: 0;
 
-  padding:24px;
-  color:var(--text-primary);
+    transform:
+      translateY(10px)
+      scale(0.98);
+  }
 
-  backdrop-filter:blur(20px);
+  to {
+    opacity: 1;
+
+    transform:
+      translateY(0)
+      scale(1);
+  }
 }
 
-.modal-container textarea{
-  width:100%;
-  min-height:120px;
 
-  margin-top:10px;
-  margin-bottom:15px;
+/* =========================================================
+   MODAL TEXT
+========================================================= */
 
-  padding:12px;
+.modal-container h3 {
+  margin: 0 0 12px;
 
-  border-radius:12px;
-  border:1px solid var(--border);
+  color: var(--sd-text, #111827);
 
-  background:var(--bg-surface);
-  color:var(--text-primary);
+  font-size: 1.2rem;
+
+  font-weight: 600;
 }
 
-.modal-container input[type="file"]{
-  margin-top:10px;
-  color:var(--text-secondary);
+
+.modal-container h4 {
+  margin: 0 0 10px;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 1rem;
+
+  font-weight: 600;
 }
 
-.modal-actions{
-  display:flex;
-  justify-content:flex-end;
-  gap:12px;
-  margin-top:20px;
+
+.modal-container p {
+  margin: 0 0 12px;
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.9rem;
+
+  line-height: 1.5;
 }
 
-.cancel-btn{
-  padding:10px 18px;
-  border-radius:12px;
 
-  background:var(--secondary-btn-bg);
-  border:1px solid var(--secondary-btn-border);
+.modal-container label {
+  display: block;
 
-  color:var(--secondary-btn-color);
+  margin-top: 16px;
+
+  margin-bottom: 7px;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 0.85rem;
+
+  font-weight: 600;
 }
 
-.submit-btn{
-  padding:10px 18px;
-  border-radius:12px;
 
-  background:linear-gradient(
-    135deg,
-    #6366f1,
-    #8b5cf6
-  );
+/* =========================================================
+   TEXTAREA
+========================================================= */
 
-  color:white;
+.modal-container textarea {
+  width: 100%;
+
+  min-height: 120px;
+
+  box-sizing: border-box;
+
+  margin-top: 5px;
+
+  margin-bottom: 10px;
+
+  padding: 12px;
+
+  resize: vertical;
+
+  border-radius: 10px;
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  outline: none;
+
+  background: var(--sd-surface, #ffffff);
+
+  color: var(--sd-text, #111827);
+
+  font-family: inherit;
+
+  font-size: 0.9rem;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.modal-container textarea::placeholder {
+  color: var(--sd-text-secondary, #6b7280);
+}
+
+
+.modal-container textarea:focus {
+  border-color: var(--sd-border, #e5e7eb);
+
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+
+/* =========================================================
+   FILE INPUT
+========================================================= */
+
+.modal-container input[type="file"] {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  margin-top: 5px;
+
+  padding: 10px;
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  border-radius: 10px;
+
+  background: var(--sd-surface, #ffffff);
+
+  color: var(--sd-text-secondary, #6b7280);
+
+  font-size: 0.85rem;
+}
+
+
+/* =========================================================
+   SELECTED FILE NAME
+========================================================= */
+
+.resume-name {
+  margin-top: 10px !important;
+
+  padding: 9px 12px;
+
+  border-radius: 8px;
+
+  background: var(--sd-hover, #f3f4f6);
+
+  color: var(--sd-text, #111827) !important;
+
+  font-size: 0.85rem !important;
+}
+
+
+/* =========================================================
+   MODAL ACTIONS
+========================================================= */
+
+.modal-actions {
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  margin-top: 20px;
+}
+
+
+/* =========================================================
+   CANCEL BUTTON
+========================================================= */
+
+.cancel-btn {
+  padding: 10px 18px;
+
+  border-radius: 10px;
+
+  border: 1px solid var(--sd-border, #e5e7eb);
+
+  background: transparent;
+
+  color: var(--sd-text, #111827);
+
+  font-size: 0.875rem;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+.cancel-btn:hover {
+  border-color: var(--sd-border, #e5e7eb);
+
+  background: var(--sd-hover, #f3f4f6);
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   SUBMIT BUTTON
+========================================================= */
+
+.submit-btn {
+  padding: 10px 18px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background: var(--sd-primary, #3b82f6);
+
+  color: #ffffff;
+
+  font-size: 0.875rem;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.submit-btn:hover {
+  background: #2563eb;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 5px 15px rgba(59, 130, 246, 0.2);
+}
+
+
+/* =========================================================
+   DARK THEME
+========================================================= */
+
+[data-theme="dark"] .task-progress-card,
+[data-theme="dark"] .task-card,
+[data-theme="dark"] .completed-task,
+[data-theme="dark"] .empty-task-card {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+
+[data-theme="dark"] .task-progress-card:hover,
+[data-theme="dark"] .task-card:hover,
+[data-theme="dark"] .completed-task:hover {
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.30);
+}
+
+
+[data-theme="dark"] .view-btn:hover {
+  background: rgba(59, 130, 246, 0.12);
+
+  border-color: var(--sd-border, #2a2f3a);
+}
+
+
+[data-theme="dark"] .cancel-btn:hover {
+  background: var(--sd-hover, #222731);
+
+  border-color: var(--sd-border, #2a2f3a);
+}
+
+
+[data-theme="dark"] .resume-name {
+  background: var(--sd-hover, #222731);
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 768px) {
+
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+
+
+  .task-progress-card,
+  .task-card,
+  .completed-task {
+    padding: 18px;
+  }
+
+
+  .completed-task {
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 18px;
+  }
+
+
+  .completed-task > div:last-child {
+    width: 100%;
+
+    display: flex !important;
+
+    flex-direction: row !important;
+
+    gap: 10px !important;
+  }
+
+
+  .delete-btn,
+  .view-btn {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    text-align: center;
+  }
+
+
+  .modal-overlay {
+    padding: 12px;
+  }
+
+
+  .modal-container {
+    width: 100%;
+
+    max-height: 92vh;
+
+    padding: 20px;
+  }
+
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+
+  .cancel-btn,
+  .submit-btn {
+    width: 100%;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+  .page-header h1 {
+    font-size: 1.35rem;
+  }
+
+
+  .task-progress-card,
+  .task-card,
+  .completed-task {
+    padding: 16px;
+
+    border-radius: 12px;
+  }
+
+
+  .modal-overlay {
+    padding: 8px;
+  }
+
+
+  .modal-container {
+    padding: 16px;
+
+    border-radius: 12px;
+  }
+
+
+  .completed-task > div:last-child {
+    flex-direction: column !important;
+  }
 }

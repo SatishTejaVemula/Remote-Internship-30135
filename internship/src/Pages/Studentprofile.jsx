@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Loader from "../Components/Loader";
+
+import HeaderforStudent from "../Components/HeaderforStudent";
+
 import "../Styles/StudentProfile.css";
+
 import toast from "react-hot-toast";
+
 import {
   LayoutDashboard,
   Search,
@@ -12,75 +16,185 @@ import {
   User,
 } from "lucide-react";
 
+
 const StudentProfile = () => {
   const navigate = useNavigate();
-  const [showImagePreview, setShowImagePreview] = useState(false);
-  const storedStudent = JSON.parse(localStorage.getItem("studentProfile"));
-  const [profile, setProfile] = useState(storedStudent || {});
-  const [editMode, setEditMode] = useState(false);
-  const [resumeFile, setResumeFile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [extraData, setExtraData] = useState({
-    phone: storedStudent?.phone || "",
-    skills: (() => {
-      try {
-        return storedStudent?.skills
-          ? JSON.parse(storedStudent.skills)
-          : [];
-      } catch {
-        return [];
-      }
-    })(),
-    links: (() => {
-      try {
-        return storedStudent?.links
-          ? JSON.parse(storedStudent.links)
-          : [];
-      } catch {
-        return [];
-      }
-    })(),
-    resume: storedStudent?.resume || "",
-  });
 
-  const [skillInput, setSkillInput] = useState("");
-  const [linkInput, setLinkInput] = useState("");
 
-  const token = localStorage.getItem("token");
+  /* =========================================================
+     IMAGE PREVIEW
+  ========================================================= */
+
+  const [showImagePreview, setShowImagePreview] =
+    useState(false);
+
+
+  /* =========================================================
+     STUDENT DATA
+  ========================================================= */
+
+  const storedStudent =
+    JSON.parse(
+      localStorage.getItem("studentProfile")
+    ) || {};
+
+  const [profile, setProfile] =
+    useState(storedStudent);
+
+
+  /* =========================================================
+     EDIT MODE
+  ========================================================= */
+
+  const [editMode, setEditMode] =
+    useState(false);
+
+
+  /* =========================================================
+     FILES
+  ========================================================= */
+
+  const [resumeFile, setResumeFile] =
+    useState(null);
+
+
+  /* =========================================================
+     LOADING
+  ========================================================= */
+
+  const [loading, setLoading] =
+    useState(true);
+
+
+  /* =========================================================
+     EXTRA PROFILE DATA
+  ========================================================= */
+
+  const [extraData, setExtraData] =
+    useState({
+      phone: storedStudent?.phone || "",
+
+      skills: (() => {
+        try {
+          return storedStudent?.skills
+            ? JSON.parse(
+              storedStudent.skills
+            )
+            : [];
+        } catch {
+          return [];
+        }
+      })(),
+
+      links: (() => {
+        try {
+          return storedStudent?.links
+            ? JSON.parse(
+              storedStudent.links
+            )
+            : [];
+        } catch {
+          return [];
+        }
+      })(),
+
+      resume:
+        storedStudent?.resume || "",
+    });
+
+
+  /* =========================================================
+     INPUT STATES
+  ========================================================= */
+
+  const [skillInput, setSkillInput] =
+    useState("");
+
+  const [linkInput, setLinkInput] =
+    useState("");
+
+
+  /* =========================================================
+     TOKEN
+  ========================================================= */
+
+  const token =
+    localStorage.getItem("token");
+
+
+  /* =========================================================
+     LOAD PROFILE
+  ========================================================= */
+
   useEffect(() => {
     if (!storedStudent?.id) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    const loadProfile = async () => {
+      try {
+        setLoading(true);
 
-    fetch(`https://remote-internship-30135.onrender.com/api/students/${storedStudent.id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
+        const response = await fetch(
+          `https://remote-internship-30135.onrender.com/api/students/${storedStudent.id}`,
+          {
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            "Failed to load profile"
+          );
         }
-      }
 
-    )
-      .then((res) => res.json())
-      .then((data) => {
+        const data =
+          await response.json();
+
         setProfile(data);
 
         setExtraData({
           phone: data.phone || "",
-          skills: data.skills ? JSON.parse(data.skills) : [],
-          links: data.links ? JSON.parse(data.links) : [],
-          resume: data.resume || "",
+
+          skills: data.skills
+            ? JSON.parse(data.skills)
+            : [],
+
+          links: data.links
+            ? JSON.parse(data.links)
+            : [],
+
+          resume:
+            data.resume || "",
         });
 
+      } catch (error) {
+        console.error(
+          "Profile loading error:",
+          error
+        );
+
+        toast.error(
+          "Failed to load profile"
+        );
+
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
+      }
+    };
+
+    loadProfile();
   }, [storedStudent?.id]);
+
+
+  /* =========================================================
+     PROFILE COMPLETION
+  ========================================================= */
+
   const fields = [
     profile.name,
     profile.university,
@@ -91,539 +205,1591 @@ const StudentProfile = () => {
 
   const completion =
     Math.round(
-      (fields.filter(Boolean).length / fields.length) * 100
+      (fields.filter(Boolean).length /
+        fields.length) *
+      100
     );
 
+
+  /* =========================================================
+     HANDLE PROFILE CHANGE
+  ========================================================= */
+
   const handleChange = (e) => {
-    setProfile({ ...profile, [e.target.name]: e.target.value });
+    setProfile({
+      ...profile,
+      [e.target.name]:
+        e.target.value,
+    });
   };
 
-  const handleSave = () => {
+
+  /* =========================================================
+     SAVE PROFILE
+  ========================================================= */
+
+  const handleSave = async () => {
     const updated = {
       name: profile.name,
-      university: profile.university,
+      university:
+        profile.university,
+
       stream: profile.stream,
+
       branch: profile.branch,
-      joiningyear: profile.joiningyear,
-      graduatedyear: profile.graduatedyear,
+
+      joiningyear:
+        profile.joiningyear,
+
+      graduatedyear:
+        profile.graduatedyear,
+
       phone: extraData.phone,
-      skills: JSON.stringify(extraData.skills),
-      links: JSON.stringify(extraData.links),
-      resume: extraData.resume,
-      image: profile.image,
+
+      skills:
+        JSON.stringify(
+          extraData.skills
+        ),
+
+      links:
+        JSON.stringify(
+          extraData.links
+        ),
+
+      resume:
+        extraData.resume,
+
+      image:
+        profile.image,
     };
 
-    setProfile((prev) => ({ ...prev, ...updated }));
-    setEditMode(false);
 
+    try {
+      setProfile((prev) => ({
+        ...prev,
+        ...updated,
+      }));
 
-    fetch(`https://remote-internship-30135.onrender.com/api/students/${profile.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(updated),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        localStorage.setItem(
-          "studentProfile",
-          JSON.stringify({
-            id: data.id,
-            name: data.name,
-            email: data.email,
-            university: data.university,
-            stream: data.stream,
-            branch: data.branch,
-            joiningyear: data.joiningyear,
-            graduatedyear: data.graduatedyear,
-            phone: data.phone,
-            skills: data.skills,
-            links: data.links,
-            resume: data.resume,
-            image: null,
-          })
+      const response =
+        await fetch(
+          `https://remote-internship-30135.onrender.com/api/students/${profile.id}`,
+          {
+            method: "PUT",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              Authorization:
+                `Bearer ${token}`,
+            },
+
+            body:
+              JSON.stringify(updated),
+          }
         );
 
-        toast.success("Profile updated successfully");
-      })
-      .catch((err) => {
-        console.error(err);
-        toast.error("Failed to update profile");
-      });
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to update profile"
+        );
+      }
+
+
+      const data =
+        await response.json();
+
+
+      localStorage.setItem(
+        "studentProfile",
+        JSON.stringify({
+          id: data.id,
+
+          name: data.name,
+
+          email: data.email,
+
+          university:
+            data.university,
+
+          stream: data.stream,
+
+          branch: data.branch,
+
+          joiningyear:
+            data.joiningyear,
+
+          graduatedyear:
+            data.graduatedyear,
+
+          phone: data.phone,
+
+          skills: data.skills,
+
+          links: data.links,
+
+          resume: data.resume,
+
+          image: data.image,
+        })
+      );
+
+
+      setProfile(data);
+
+      setEditMode(false);
+
+      toast.success(
+        "Profile updated successfully"
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "Failed to update profile"
+      );
+    }
   };
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
+
+
+  /* =========================================================
+     IMAGE UPLOAD
+  ========================================================= */
+
+  const handleImageUpload = async (e) => {
+    const file =
+      e.target.files?.[0];
+
     if (!file) return;
-    const maxSize = 2 * 1024 * 1024;
+
+
+    const maxSize =
+      2 * 1024 * 1024;
+
 
     if (file.size > maxSize) {
-      toast("Image size should be less than 2MB", {
-        icon: "⚠️",
-      });
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      toast("Only image files allowed", {
-        icon: "⚠️",
-      });
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    fetch(`https://remote-internship-30135.onrender.com/api/students/${profile.id}/uploadImage`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    })
-      .then((res) => res.text())
-      .then((fileName) => {
-        setProfile({ ...profile, image: fileName });
-        toast.success("Profile photo updated successfully");
-      })
-      .catch(() => {
-        toast.error("Failed to upload image");
-      });
-  };
-  const removeImage = () => {
-    fetch(`https://remote-internship-30135.onrender.com/api/students/${profile.id}/deleteImage`, {
-      headers: { Authorization: `Bearer ${token}` },
-      method: "DELETE",
-    })
-      .then(() => {
-        setProfile({ ...profile, image: "" });
-        toast.success("Profile photo removed");
-      })
-      .catch((err) => {
-        console.error(err);
-        toast.error("Failed to remove photo");
-      });
-  };
-
-  const uploadResume = () => {
-    if (!resumeFile) return;
-
-    const formData = new FormData();
-    formData.append("file", resumeFile);
-
-    fetch(
-      `https://remote-internship-30135.onrender.com/api/students/${profile.id}/uploadResume`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      }
-    )
-      .then((res) => res.text())
-      .then((fileName) => {
-        setExtraData({ ...extraData, resume: fileName });
-        toast.success("Resume uploaded successfully");
-      })
-      .catch(() => {
-        toast.error("Failed to upload resume");
-      });
-  };
-  const viewResume = async () => {
-    try {
-      const response = await fetch(
-        `https://remote-internship-30135.onrender.com/api/students/resume/${extraData.resume}`,
+      toast(
+        "Image size should be less than 2MB",
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          icon: "⚠️",
         }
       );
 
+      return;
+    }
+
+
+    if (
+      !file.type.startsWith(
+        "image/"
+      )
+    ) {
+      toast(
+        "Only image files allowed",
+        {
+          icon: "⚠️",
+        }
+      );
+
+      return;
+    }
+
+
+    try {
+      const formData =
+        new FormData();
+
+      formData.append(
+        "file",
+        file
+      );
+
+
+      const response =
+        await fetch(
+          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/uploadImage`,
+          {
+            method: "POST",
+
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+
+            body: formData,
+          }
+        );
+
+
       if (!response.ok) {
-        throw new Error("Failed to load resume");
+        throw new Error(
+          "Image upload failed"
+        );
       }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
 
-      window.open(url, "_blank");
-    } catch (err) {
-      console.error(err);
-      toast.error("Unable to open resume");
+      const fileName =
+        await response.text();
+
+
+      setProfile({
+        ...profile,
+        image: fileName,
+      });
+
+
+      toast.success(
+        "Profile photo updated successfully"
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "Failed to upload image"
+      );
     }
   };
 
-  const deleteResume = () => {
-    fetch(
-      `https://remote-internship-30135.onrender.com/api/students/${profile.id}/deleteResume`,
-      { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
-    ).then(() => {
-      setExtraData({ ...extraData, resume: "" });
-      toast.success("Resume deleted successfully");
-    })
-      .catch(() => {
-        toast.error("Failed to delete resume");
+
+  /* =========================================================
+     REMOVE IMAGE
+  ========================================================= */
+
+  const removeImage = async () => {
+    try {
+      const response =
+        await fetch(
+          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/deleteImage`,
+          {
+            method: "DELETE",
+
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to remove photo"
+        );
+      }
+
+
+      setProfile({
+        ...profile,
+        image: "",
       });
+
+
+      toast.success(
+        "Profile photo removed"
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "Failed to remove photo"
+      );
+    }
   };
+
+
+  /* =========================================================
+     UPLOAD RESUME
+  ========================================================= */
+
+  const uploadResume = async () => {
+    if (!resumeFile) {
+      toast.error(
+        "Please select a resume"
+      );
+
+      return;
+    }
+
+
+    try {
+      const formData =
+        new FormData();
+
+      formData.append(
+        "file",
+        resumeFile
+      );
+
+
+      const response =
+        await fetch(
+          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/uploadResume`,
+          {
+            method: "POST",
+
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+
+            body: formData,
+          }
+        );
+
+
+      if (!response.ok) {
+        throw new Error(
+          "Resume upload failed"
+        );
+      }
+
+
+      const fileName =
+        await response.text();
+
+
+      setExtraData({
+        ...extraData,
+        resume: fileName,
+      });
+
+
+      setResumeFile(null);
+
+
+      toast.success(
+        "Resume uploaded successfully"
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "Failed to upload resume"
+      );
+    }
+  };
+
+
+  /* =========================================================
+     VIEW RESUME
+  ========================================================= */
+
+  const viewResume = async () => {
+    try {
+      const response =
+        await fetch(
+          `https://remote-internship-30135.onrender.com/api/students/resume/${extraData.resume}`,
+          {
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to load resume"
+        );
+      }
+
+
+      const blob =
+        await response.blob();
+
+
+      const url =
+        URL.createObjectURL(blob);
+
+
+      window.open(
+        url,
+        "_blank"
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "Unable to open resume"
+      );
+    }
+  };
+
+
+  /* =========================================================
+     DELETE RESUME
+  ========================================================= */
+
+  const deleteResume = async () => {
+    try {
+      const response =
+        await fetch(
+          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/deleteResume`,
+          {
+            method: "DELETE",
+
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to delete resume"
+        );
+      }
+
+
+      setExtraData({
+        ...extraData,
+        resume: "",
+      });
+
+
+      toast.success(
+        "Resume deleted successfully"
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "Failed to delete resume"
+      );
+    }
+  };
+
+
+  /* =========================================================
+     ADD SKILL
+  ========================================================= */
+
+  const addSkill = async () => {
+    const skill =
+      skillInput.trim();
+
+    if (!skill) return;
+
+
+    try {
+      const response =
+        await fetch(
+          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/add-skill?skill=${encodeURIComponent(skill)}`,
+          {
+            method: "PUT",
+
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to add skill"
+        );
+      }
+
+
+      setExtraData({
+        ...extraData,
+
+        skills: [
+          ...extraData.skills,
+          skill,
+        ],
+      });
+
+
+      setSkillInput("");
+
+      toast.success(
+        "Skill added"
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "Failed to add skill"
+      );
+    }
+  };
+
+
+  /* =========================================================
+     DELETE SKILL
+  ========================================================= */
+
+  const deleteSkill = async (
+    skill,
+    index
+  ) => {
+    try {
+      const response =
+        await fetch(
+          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/delete-skill?skill=${encodeURIComponent(skill)}`,
+          {
+            method: "PUT",
+
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to delete skill"
+        );
+      }
+
+
+      const updatedSkills =
+        extraData.skills.filter(
+          (_, i) =>
+            i !== index
+        );
+
+
+      setExtraData({
+        ...extraData,
+        skills:
+          updatedSkills,
+      });
+
+
+      toast.success(
+        "Skill removed"
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "Failed to remove skill"
+      );
+    }
+  };
+
+
+  /* =========================================================
+     ADD LINK
+  ========================================================= */
+
+  const addLink = async () => {
+    const link =
+      linkInput.trim();
+
+    if (!link) return;
+
+
+    try {
+      const response =
+        await fetch(
+          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/add-link?link=${encodeURIComponent(link)}`,
+          {
+            method: "PUT",
+
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to add link"
+        );
+      }
+
+
+      setExtraData({
+        ...extraData,
+
+        links: [
+          ...extraData.links,
+          link,
+        ],
+      });
+
+
+      setLinkInput("");
+
+      toast.success(
+        "Link added"
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "Failed to add link"
+      );
+    }
+  };
+
+
+  /* =========================================================
+     DELETE LINK
+  ========================================================= */
+
+  const deleteLink = async (
+    link,
+    index
+  ) => {
+    try {
+      const response =
+        await fetch(
+          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/delete-link?link=${encodeURIComponent(link)}`,
+          {
+            method: "PUT",
+
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to delete link"
+        );
+      }
+
+
+      const updatedLinks =
+        extraData.links.filter(
+          (_, i) =>
+            i !== index
+        );
+
+
+      setExtraData({
+        ...extraData,
+        links:
+          updatedLinks,
+      });
+
+
+      toast.success(
+        "Link removed"
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        "Failed to remove link"
+      );
+    }
+  };
+
+
+  /* =========================================================
+     IMAGE URL
+  ========================================================= */
+
+  const API_BASE =
+    "https://remote-internship-30135.onrender.com";
+
+  const DEFAULT_IMAGE =
+    "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
   const imageSrc =
-    profile.image
+    profile?.image &&
+      profile.image !== "default"
       ? profile.image.startsWith("data:")
         ? profile.image
-        : `https://remote-internship-30135.onrender.com/api/students/image/${profile.image}`
-      : "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        : `${API_BASE}/api/students/image/${encodeURIComponent(
+          profile.image
+        )}`
+      : DEFAULT_IMAGE;
+
+
+  /* =========================================================
+     RENDER
+  ========================================================= */
 
   return (
     <>
 
-      <div className="admin-layout" style={{ paddingTop: "70px" }}>
-        <aside className="admin-sidebar">
-          <button onClick={() => navigate("/student-dashboard")}>
-            <LayoutDashboard size={18} /> Dashboard
-          </button>
-          <button onClick={() => navigate("/browse-internships")}>
-            <Search size={18} /> Browse Internships
-          </button>
-          <button onClick={() => navigate("/myapplications")}>
-            <FileText size={18} /> My Applications
-          </button>
-          <button onClick={() => navigate("/mytasks")}>
-            <ClipboardList size={18} /> My Tasks
-          </button>
-          <button onClick={() => navigate("/feedback")}>
-            <MessageSquare size={18} /> Feedback
-          </button>
-          <button className="active">
-            <User size={18} /> Profile
-          </button>
+      <div className="sd-layout">
+
+
+        {/* ===================================================
+            SIDEBAR
+        =================================================== */}
+
+        <aside className="sd-sidebar">
+
+          <nav className="sd-nav">
+
+            <NavButton
+              icon={LayoutDashboard}
+              label="Dashboard"
+              onClick={() =>
+                navigate(
+                  "/student-dashboard"
+                )
+              }
+            />
+
+
+            <NavButton
+              icon={Search}
+              label="Browse Internships"
+              onClick={() =>
+                navigate(
+                  "/browse-internships"
+                )
+              }
+            />
+
+
+            <NavButton
+              icon={FileText}
+              label="My Applications"
+              onClick={() =>
+                navigate(
+                  "/myapplications"
+                )
+              }
+            />
+
+
+            <NavButton
+              icon={ClipboardList}
+              label="My Tasks"
+              onClick={() =>
+                navigate(
+                  "/mytasks"
+                )
+              }
+            />
+
+
+            <NavButton
+              icon={MessageSquare}
+              label="Feedback"
+              onClick={() =>
+                navigate(
+                  "/feedback"
+                )
+              }
+            />
+
+
+            <NavButton
+              active
+              icon={User}
+              label="Profile"
+              onClick={() =>
+                navigate(
+                  "/student-profile"
+                )
+              }
+            />
+
+          </nav>
+
         </aside>
 
-        <main className="admin-main">
+
+        {/* ===================================================
+            MAIN
+        =================================================== */}
+
+        <main className="sd-main">
+
+
+          {/* =================================================
+              LOADER
+          ================================================= */}
 
           {loading ? (
-            <Loader />
+
+            <div className="sd-loader">
+
+              <div className="sd-spinner"></div>
+
+              <p>
+                Loading your profile…
+              </p>
+
+            </div>
+
           ) : (
+
             <>
+
+
+              {/* =============================================
+                  PROFILE HEADER
+              ============================================= */}
+
               <div className="profile-header">
+
+                {/* Title */}
+
+                <div>
+
+                  <h1>
+                    {profile.name ||
+                      "Student"}'s Profile
+                  </h1>
+
+                  <p>
+                    Manage your complete
+                    profile
+                  </p>
+
+                </div>
+                {/* Completion */}
+
                 <div className="dashboard-card">
-                  <h2>Profile Completion</h2>
+
+                  <h2>
+                    Profile Completion
+                  </h2>
+
 
                   <div className="progress-track">
+
                     <div
                       className="progress-fill"
-                      style={{ width: `${completion}%` }}
+                      style={{
+                        width:
+                          `${completion}%`,
+                      }}
                     />
+
                   </div>
+
 
                   <p className="progress-text">
                     {completion}% Complete
                   </p>
-                </div>
-                <div>
-                  <h1>{profile.name}'s Profile</h1>
-                  <p style={{ color: "#6b7280" }}>
-                    Manage your complete profile
-                  </p>
+
                 </div>
 
+
+
+
+
+                {/* Edit / Save */}
+
                 {!editMode ? (
+
                   <button
                     className="primary-btn"
-                    onClick={() => setEditMode(true)}
+                    onClick={() =>
+                      setEditMode(true)
+                    }
                   >
                     Edit Profile
                   </button>
+
                 ) : (
-                  <button className="primary-btn" onClick={handleSave}>
+
+                  <button
+                    className="primary-btn"
+                    onClick={handleSave}
+                  >
                     Save Changes
                   </button>
+
                 )}
+
               </div>
 
+
+              {/* =============================================
+                  PROFILE + ACADEMIC DETAILS
+              ============================================= */}
+
               <div className="profile-container">
+
+
+                {/* ===========================================
+                    PROFILE CARD
+                =========================================== */}
+
                 <div className="profile-card">
+
                   <img
                     src={imageSrc}
                     alt="profile"
-                    style={{ cursor: "pointer" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowImagePreview(true);
+                    style={{
+                      cursor:
+                        "pointer",
                     }}
+                    onClick={() =>
+                      setShowImagePreview(
+                        true
+                      )
+                    }
                   />
-                  <h2>{profile.name}</h2>
-                  <p>{profile.email}</p>
+
+
+                  <h2>
+                    {profile.name ||
+                      "Student"}
+                  </h2>
+
+
+                  <p>
+                    {profile.email ||
+                      "student@gmail.com"}
+                  </p>
+
+
+                  {/* Image Upload */}
 
                   {editMode && (
                     <>
+
                       <div className="image-dropzone">
-                        <p style={{ fontSize: "13px", color: "#6b7280" }}>
-                          Drag & Drop Image or Click Below
+
+                        <p>
+                          Drag & Drop
+                          Image or Click
+                          Below
                         </p>
+
 
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => handleImageUpload(e)}
+                          onChange={
+                            handleImageUpload
+                          }
                         />
+
                       </div>
 
+
                       {profile.image && (
-                        <button className="delete-btn" onClick={removeImage}>
+
+                        <button
+                          className="delete-btn"
+                          onClick={
+                            removeImage
+                          }
+                        >
                           Remove Photo
                         </button>
+
                       )}
+
                     </>
                   )}
 
                 </div>
 
+
+                {/* ===========================================
+                    ACADEMIC DETAILS
+                =========================================== */}
+
                 <div className="profile-details">
-                  <h3>🎓 Academic Details</h3>
 
-                  {["name", "university", "stream", "branch"].map((field) => (
-                    <div key={field} className="profile-row">
-                      <label>{field}</label>
-                      {editMode ? (
-                        <input
-                          name={field}
-                          value={profile[field] || ""}
-                          onChange={handleChange}
-                        />
-                      ) : (
-                        <span>{profile[field]}</span>
-                      )}
-                    </div>
-                  ))}
+                  <h3>
+                    🎓 Academic Details
+                  </h3>
 
-                  <h3 style={{ marginTop: "20px" }}>📅 Timeline</h3>
 
-                  {["joiningyear", "graduatedyear"].map((field) => (
-                    <div key={field} className="profile-row">
-                      <label>{field}</label>
-                      {editMode ? (
-                        <input
-                          name={field}
-                          value={profile[field] || ""}
-                          onChange={handleChange}
-                        />
-                      ) : (
-                        <span>{profile[field]}</span>
-                      )}
-                    </div>
-                  ))}
+                  {[
+                    "name",
+                    "university",
+                    "stream",
+                    "branch",
+                  ].map(
+                    (field) => (
+
+                      <div
+                        key={field}
+                        className="profile-row"
+                      >
+
+                        <label>
+                          {field}
+                        </label>
+
+
+                        {editMode ? (
+
+                          <input
+                            name={field}
+                            value={
+                              profile[
+                              field
+                              ] || ""
+                            }
+                            onChange={
+                              handleChange
+                            }
+                          />
+
+                        ) : (
+
+                          <span>
+                            {
+                              profile[
+                              field
+                              ] || "N/A"
+                            }
+                          </span>
+
+                        )}
+
+                      </div>
+
+                    )
+                  )}
+
+
+                  <h3
+                    style={{
+                      marginTop:
+                        "20px",
+                    }}
+                  >
+                    📅 Timeline
+                  </h3>
+
+
+                  {[
+                    "joiningyear",
+                    "graduatedyear",
+                  ].map(
+                    (field) => (
+
+                      <div
+                        key={field}
+                        className="profile-row"
+                      >
+
+                        <label>
+                          {field}
+                        </label>
+
+
+                        {editMode ? (
+
+                          <input
+                            name={field}
+                            value={
+                              profile[
+                              field
+                              ] || ""
+                            }
+                            onChange={
+                              handleChange
+                            }
+                          />
+
+                        ) : (
+
+                          <span>
+                            {
+                              profile[
+                              field
+                              ] || "N/A"
+                            }
+                          </span>
+
+                        )}
+
+                      </div>
+
+                    )
+                  )}
+
                 </div>
+
               </div>
 
+
+              {/* =============================================
+                  PERSONAL INFORMATION
+              ============================================= */}
+
               <div className="dashboard-card">
-                <h2>Personal Information</h2>
-                <p>📧 {profile.email}</p>
+
+                <h2>
+                  Personal Information
+                </h2>
+
+
+                <p>
+                  📧{" "}
+                  {profile.email ||
+                    "N/A"}
+                </p>
+
 
                 {editMode ? (
+
                   <input
-                    value={extraData.phone}
+                    value={
+                      extraData.phone
+                    }
+                    placeholder="Phone number"
                     onChange={(e) =>
-                      setExtraData({ ...extraData, phone: e.target.value })
+                      setExtraData({
+                        ...extraData,
+                        phone:
+                          e.target.value,
+                      })
                     }
                   />
+
                 ) : (
-                  <p>📱 {extraData.phone}</p>
+
+                  <p>
+                    📱{" "}
+                    {extraData.phone ||
+                      "N/A"}
+                  </p>
+
                 )}
+
               </div>
 
+
+              {/* =============================================
+                  RESUME
+              ============================================= */}
+
               <div className="dashboard-card">
-                <h2>Resume</h2>
+
+                <h2>
+                  Resume
+                </h2>
+
 
                 {editMode && (
-                  <>
+
+                  <div className="quick-actions-row">
+
                     <input
                       type="file"
-                      onChange={(e) => setResumeFile(e.target.files[0])}
+                      accept=".pdf,.doc,.docx"
+                      onChange={(e) =>
+                        setResumeFile(
+                          e.target
+                            .files?.[0] ||
+                          null
+                        )
+                      }
                     />
-                    <button onClick={uploadResume} className="primary-btn">Upload</button>
-                  </>
+
+
+                    <button
+                      onClick={
+                        uploadResume
+                      }
+                      className="primary-btn"
+                    >
+                      Upload
+                    </button>
+
+                  </div>
+
                 )}
 
-                {extraData.resume && (
+
+                {extraData.resume ? (
+
                   <div className="resume-card">
-                    <p>{extraData.resume}</p>
+
+                    <p>
+                      {extraData.resume}
+                    </p>
+
 
                     <div>
+
                       <button
-                        onClick={viewResume}
+                        onClick={
+                          viewResume
+                        }
                         className="view-btn"
                       >
                         View Resume
                       </button>
 
+
                       {editMode && (
+
                         <button
                           className="delete-btn"
-                          onClick={deleteResume}
+                          onClick={
+                            deleteResume
+                          }
                         >
                           Delete
                         </button>
+
                       )}
+
                     </div>
+
                   </div>
+
+                ) : (
+
+                  <p>
+                    No resume uploaded yet.
+                  </p>
+
                 )}
+
               </div>
 
+
+              {/* =============================================
+                  SKILLS
+              ============================================= */}
+
               <div className="dashboard-card">
-                <h2>Skills</h2>
+
+                <h2>
+                  Skills
+                </h2>
+
 
                 {editMode && (
+
                   <div className="quick-actions-row">
+
                     <input
-                      value={skillInput}
-                      onChange={(e) => setSkillInput(e.target.value)}
+                      value={
+                        skillInput
+                      }
+                      placeholder="Enter a skill"
+                      onChange={(e) =>
+                        setSkillInput(
+                          e.target.value
+                        )
+                      }
+                      onKeyDown={(e) => {
+                        if (
+                          e.key ===
+                          "Enter"
+                        ) {
+                          e.preventDefault();
+                          addSkill();
+                        }
+                      }}
                     />
+
 
                     <button
                       className="secondary-btn"
-                      onClick={async () => {
-                        if (!skillInput.trim()) return;
-
-                        await fetch(
-                          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/add-skill?skill=${skillInput}`,
-                          { method: "PUT" }
-                        );
-
-                        setExtraData({
-                          ...extraData,
-                          skills: [...extraData.skills, skillInput],
-                        });
-
-                        setSkillInput("");
-                      }}
+                      onClick={
+                        addSkill
+                      }
                     >
                       Add
                     </button>
+
                   </div>
+
                 )}
 
-                {extraData.skills.map((s, i) => (
-                  <span key={i} className="skill-chip">
-                    {s}
-                    {editMode && (
-                      <button
-                        className="delete-btn"
-                        style={{ marginLeft: "8px", padding: "2px 6px" }}
-                        onClick={async () => {
-                          await fetch(
-                            `https://remote-internship-30135.onrender.com/api/students/${profile.id}/delete-skill?skill=${s}`,
-                            { method: "PUT" }
-                          );
 
-                          const updatedSkills = extraData.skills.filter((_, index) => index !== i);
-                          setExtraData({ ...extraData, skills: updatedSkills });
-                        }}
-                      >
-                        ×
-                      </button>
+                {extraData.skills
+                  .length === 0 ? (
+
+                  <p>
+                    No skills added yet.
+                  </p>
+
+                ) : (
+
+                  <div>
+
+                    {extraData.skills.map(
+                      (
+                        skill,
+                        index
+                      ) => (
+
+                        <span
+                          key={`${skill}-${index}`}
+                          className="skill-chip"
+                        >
+
+                          {skill}
+
+
+                          {editMode && (
+
+                            <button
+                              className="delete-btn"
+                              style={{
+                                marginLeft:
+                                  "8px",
+                                padding:
+                                  "2px 6px",
+                              }}
+                              onClick={() =>
+                                deleteSkill(
+                                  skill,
+                                  index
+                                )
+                              }
+                            >
+                              ×
+                            </button>
+
+                          )}
+
+                        </span>
+
+                      )
                     )}
-                  </span>
-                ))}
+
+                  </div>
+
+                )}
+
               </div>
 
+
+              {/* =============================================
+                  LINKS
+              ============================================= */}
+
               <div className="dashboard-card">
-                <h2>Links</h2>
+
+                <h2>
+                  Links
+                </h2>
+
 
                 {editMode && (
+
                   <div className="quick-actions-row">
+
                     <input
-                      value={linkInput}
-                      onChange={(e) => setLinkInput(e.target.value)}
+                      value={
+                        linkInput
+                      }
+                      placeholder="Enter portfolio, GitHub, LinkedIn, etc."
+                      onChange={(e) =>
+                        setLinkInput(
+                          e.target.value
+                        )
+                      }
+                      onKeyDown={(e) => {
+                        if (
+                          e.key ===
+                          "Enter"
+                        ) {
+                          e.preventDefault();
+                          addLink();
+                        }
+                      }}
                     />
+
 
                     <button
                       className="secondary-btn"
-                      onClick={async () => {
-                        if (!linkInput.trim()) return;
-
-                        await fetch(
-                          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/add-link?link=${linkInput}`,
-                          { method: "PUT" }
-                        );
-
-                        setExtraData({
-                          ...extraData,
-                          links: [...extraData.links, linkInput],
-                        });
-
-                        setLinkInput("");
-                      }}
+                      onClick={
+                        addLink
+                      }
                     >
                       Add
                     </button>
+
                   </div>
+
                 )}
 
-                {extraData.links.map((l, i) => (
-                  <div key={i} className="link-item">
-                    <p style={{ margin: 0 }}>{l}</p>
 
-                    {editMode && (
-                      <button
-                        className="delete-btn"
-                        onClick={async () => {
-                          await fetch(
-                            `https://remote-internship-30135.onrender.com/api/students/${profile.id}/delete-link?link=${l}`,
-                            { method: "PUT" }
-                          );
+                {extraData.links
+                  .length === 0 ? (
 
-                          const updatedLinks = extraData.links.filter((_, index) => index !== i);
-                          setExtraData({ ...extraData, links: updatedLinks });
-                        }}
+                  <p>
+                    No links added yet.
+                  </p>
+
+                ) : (
+
+                  extraData.links.map(
+                    (
+                      link,
+                      index
+                    ) => (
+
+                      <div
+                        key={`${link}-${index}`}
+                        className="link-item"
                       >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                ))}
+
+                        <p>
+                          {link}
+                        </p>
+
+
+                        {editMode && (
+
+                          <button
+                            className="delete-btn"
+                            onClick={() =>
+                              deleteLink(
+                                link,
+                                index
+                              )
+                            }
+                          >
+                            Delete
+                          </button>
+
+                        )}
+
+                      </div>
+
+                    )
+                  )
+
+                )}
+
               </div>
+
+
+              {/* =============================================
+                  IMAGE PREVIEW
+              ============================================= */}
+
               {showImagePreview && (
+
                 <div
                   className="image-preview-overlay"
-                  onClick={() => setShowImagePreview(false)}
+                  onClick={() =>
+                    setShowImagePreview(
+                      false
+                    )
+                  }
                 >
+
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setShowImagePreview(false);
+
+                      setShowImagePreview(
+                        false
+                      );
                     }}
                     style={{
-                      position: "absolute",
+                      position:
+                        "absolute",
+
                       top: "20px",
+
                       right: "20px",
-                      background: "rgba(255,255,255,0.2)",
+
+                      background:
+                        "rgba(255,255,255,0.2)",
+
                       border: "none",
+
                       color: "#fff",
+
                       fontSize: "22px",
-                      cursor: "pointer",
-                      padding: "8px 12px",
-                      borderRadius: "50%",
+
+                      cursor:
+                        "pointer",
+
+                      padding:
+                        "8px 12px",
+
+                      borderRadius:
+                        "50%",
                     }}
                   >
                     ✕
                   </button>
 
+
                   <img
                     src={imageSrc}
                     alt="preview"
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: "100%",
-                      objectFit: "contain",
-                    }}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) =>
+                      e.stopPropagation()
+                    }
                   />
+
                 </div>
+
               )}
+
             </>
+
           )}
+
         </main>
+
       </div>
     </>
   );
 };
+
+
+/* =========================================================
+   SIDEBAR BUTTON
+========================================================= */
+
+function NavButton({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+}) {
+  return (
+    <button
+      type="button"
+      className={`sd-nav-button ${active ? "active" : ""
+        }`}
+      onClick={onClick}
+      aria-current={
+        active
+          ? "page"
+          : undefined
+      }
+    >
+
+      <Icon size={20} />
+
+      <span>
+        {label}
+      </span>
+
+    </button>
+  );
+}
+
 
 export default StudentProfile;

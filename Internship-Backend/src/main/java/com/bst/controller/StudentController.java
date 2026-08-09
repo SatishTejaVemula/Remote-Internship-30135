@@ -12,7 +12,6 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,237 +39,614 @@ public class StudentController {
     @Autowired
     private StudentRepo studentRepo;
 
-    private final String uploadDir = System.getProperty("user.dir") + "/uploads/";
+    private final String uploadDir =
+            System.getenv("UPLOAD_DIR") != null
+                    ? System.getenv("UPLOAD_DIR")
+                    : System.getProperty("user.dir") + "/uploads/";
+
 
     @PostMapping("/register")
     public Student register(@RequestBody Student student) {
         return studentService.register(student);
     }
 
+
     @PostMapping("/login")
-    public Student login(@RequestParam String email,
-                         @RequestParam String password) {
+    public Student login(
+            @RequestParam String email,
+            @RequestParam String password) {
+
         return studentService.login(email, password);
     }
+
 
     @GetMapping("/{id}")
     public StudentDTO getStudent(@PathVariable Long id) {
         return studentService.getStudentDTO(id);
     }
 
+
     @PutMapping("/{id}")
-    public Student updateStudent(@PathVariable Long id, @RequestBody Student s) {
+    public Student updateStudent(
+            @PathVariable Long id,
+            @RequestBody Student s) {
 
         Student existing = studentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() ->
+                        new RuntimeException("Student not found"));
 
-        if (s.getName() != null) existing.setName(s.getName());
-        if (s.getUniversity() != null) existing.setUniversity(s.getUniversity());
-        if (s.getStream() != null) existing.setStream(s.getStream());
-        if (s.getBranch() != null) existing.setBranch(s.getBranch());
-        if (s.getJoiningyear() != null) existing.setJoiningyear(s.getJoiningyear());
-        if (s.getGraduatedyear() != null) existing.setGraduatedyear(s.getGraduatedyear());
-        if (s.getPhone() != null) existing.setPhone(s.getPhone());
-        if (s.getSkills() != null) existing.setSkills(s.getSkills());
-        if (s.getLinks() != null) existing.setLinks(s.getLinks());
-        if (s.getResume() != null) existing.setResume(s.getResume());
-        if (s.getImage() != null) existing.setImage(s.getImage());
+        if (s.getName() != null) {
+            existing.setName(s.getName());
+        }
+
+        if (s.getUniversity() != null) {
+            existing.setUniversity(s.getUniversity());
+        }
+
+        if (s.getStream() != null) {
+            existing.setStream(s.getStream());
+        }
+
+        if (s.getBranch() != null) {
+            existing.setBranch(s.getBranch());
+        }
+
+        if (s.getJoiningyear() != null) {
+            existing.setJoiningyear(s.getJoiningyear());
+        }
+
+        if (s.getGraduatedyear() != null) {
+            existing.setGraduatedyear(s.getGraduatedyear());
+        }
+
+        if (s.getPhone() != null) {
+            existing.setPhone(s.getPhone());
+        }
+
+        if (s.getSkills() != null) {
+            existing.setSkills(s.getSkills());
+        }
+
+        if (s.getLinks() != null) {
+            existing.setLinks(s.getLinks());
+        }
+
+        if (s.getResume() != null) {
+            existing.setResume(s.getResume());
+        }
+
+        if (s.getImage() != null) {
+            existing.setImage(s.getImage());
+        }
 
         return studentRepo.save(existing);
     }
 
+
     @PostMapping("/{id}/uploadResume")
-    public String uploadResume(@PathVariable Long id,
-                              @RequestParam("file") MultipartFile file) throws Exception {
+    public String uploadResume(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file)
+            throws Exception {
+
         Student student = studentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-        if (!file.getContentType().equals("application/pdf")) {
-            throw new RuntimeException("Only PDF files allowed");
+                .orElseThrow(() ->
+                        new RuntimeException("Student not found"));
+
+        if (file.isEmpty()) {
+            throw new RuntimeException("Resume file is empty");
         }
-        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-        Path path = Paths.get(uploadDir + fileName);
-        Files.createDirectories(path.getParent());
+
+        if (!"application/pdf".equalsIgnoreCase(
+                file.getContentType())) {
+
+            throw new RuntimeException(
+                    "Only PDF files allowed");
+        }
+
+        Files.createDirectories(
+                Paths.get(uploadDir));
+
+        String originalName =
+                file.getOriginalFilename();
+
+        if (originalName == null ||
+                originalName.isBlank()) {
+
+            originalName = "resume.pdf";
+        }
+
+        String fileName =
+                System.currentTimeMillis()
+                        + "_"
+                        + Paths.get(originalName)
+                            .getFileName()
+                            .toString();
+
+        Path path =
+                Paths.get(uploadDir)
+                        .resolve(fileName)
+                        .normalize();
+
         Files.write(path, file.getBytes());
+
         student.setResume(fileName);
+
         studentRepo.save(student);
+
         return fileName;
     }
 
-    @GetMapping("/resume/{filename}")
-    public ResponseEntity<Resource> getResume(@PathVariable String filename) throws Exception {
 
-        Path path = Paths.get(uploadDir).resolve(filename);
-        Resource resource = new UrlResource(path.toUri());
+    @GetMapping("/resume/{filename}")
+    public ResponseEntity<Resource> getResume(
+            @PathVariable String filename)
+            throws Exception {
+
+        Path path =
+                Paths.get(uploadDir)
+                        .resolve(filename)
+                        .normalize();
+
+        Resource resource =
+                new UrlResource(path.toUri());
+
+        if (!resource.exists() ||
+                !resource.isReadable()) {
+
+            return ResponseEntity.notFound().build();
+        }
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + filename + "\"")
                 .body(resource);
     }
 
+
     @DeleteMapping("/{id}/deleteResume")
-    public void deleteResume(@PathVariable Long id) {
+    public void deleteResume(
+            @PathVariable Long id) {
 
         Student student = studentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Not found"));
+                .orElseThrow(() ->
+                        new RuntimeException("Not found"));
+
+        String fileName = student.getResume();
+
+        if (fileName != null &&
+                !fileName.isBlank()) {
+
+            try {
+
+                Path path =
+                        Paths.get(uploadDir)
+                                .resolve(fileName)
+                                .normalize();
+
+                Files.deleteIfExists(path);
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+            }
+        }
 
         student.setResume(null);
+
         studentRepo.save(student);
     }
 
-    @GetMapping("/image/{filename}")
-    public ResponseEntity<Resource> getImage(@PathVariable String filename) {
-        try {
-            Path path = Paths.get(uploadDir).resolve(filename).normalize();
-            Resource resource = new UrlResource(path.toUri());
 
-            if (!resource.exists() || !resource.isReadable()) {
+    @GetMapping("/image/{filename}")
+    public ResponseEntity<Resource> getImage(
+            @PathVariable String filename) {
+
+        try {
+
+            if (filename == null ||
+                    filename.isBlank() ||
+                    "default".equalsIgnoreCase(filename)) {
+
                 return ResponseEntity.notFound().build();
             }
 
-            String contentType = Files.probeContentType(path);
+            Path path =
+                    Paths.get(uploadDir)
+                            .resolve(filename)
+                            .normalize();
+
+            Resource resource =
+                    new UrlResource(path.toUri());
+
+            if (!resource.exists() ||
+                    !resource.isReadable()) {
+
+                System.out.println(
+                        "Image not found: " +
+                        path.toAbsolutePath());
+
+                return ResponseEntity.notFound().build();
+            }
+
+            String contentType =
+                    Files.probeContentType(path);
+
             if (contentType == null) {
-                contentType = "application/octet-stream";
+
+                String lower =
+                        filename.toLowerCase();
+
+                if (lower.endsWith(".png")) {
+
+                    contentType = "image/png";
+
+                } else if (
+                        lower.endsWith(".jpg") ||
+                        lower.endsWith(".jpeg")) {
+
+                    contentType = "image/jpeg";
+
+                } else if (
+                        lower.endsWith(".gif")) {
+
+                    contentType = "image/gif";
+
+                } else if (
+                        lower.endsWith(".webp")) {
+
+                    contentType = "image/webp";
+
+                } else {
+
+                    contentType =
+                            "application/octet-stream";
+                }
             }
 
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_TYPE, contentType)
+                    .contentType(
+                            MediaType.parseMediaType(
+                                    contentType))
+                    .header(
+                            HttpHeaders.CACHE_CONTROL,
+                            "max-age=3600")
                     .body(resource);
 
         } catch (Exception e) {
+
             e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
+
+            return ResponseEntity
+                    .internalServerError()
+                    .build();
         }
     }
 
+
     @PostMapping("/{id}/uploadImage")
-    public String uploadImage(@PathVariable Long id,
-                             @RequestParam("file") MultipartFile file) throws Exception {
+    public String uploadImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file)
+            throws Exception {
 
         Student student = studentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Not found"));
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Student not found"));
 
-        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-        Path path = Paths.get(uploadDir + fileName);
+        if (file.isEmpty()) {
+            throw new RuntimeException(
+                    "Image file is empty");
+        }
 
-        Files.createDirectories(path.getParent());
-        Files.write(path, file.getBytes());
+        String contentType =
+                file.getContentType();
+
+        if (contentType == null ||
+                !contentType.startsWith("image/")) {
+
+            throw new RuntimeException(
+                    "Only image files are allowed");
+        }
+
+        Files.createDirectories(
+                Paths.get(uploadDir));
+
+        String oldFileName =
+                student.getImage();
+
+        if (oldFileName != null &&
+                !oldFileName.isBlank() &&
+                !"default".equalsIgnoreCase(
+                        oldFileName)) {
+
+            try {
+
+                Path oldPath =
+                        Paths.get(uploadDir)
+                                .resolve(oldFileName)
+                                .normalize();
+
+                Files.deleteIfExists(oldPath);
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+            }
+        }
+
+        String originalName =
+                file.getOriginalFilename();
+
+        if (originalName == null ||
+                originalName.isBlank()) {
+
+            originalName = "profile-image";
+        }
+
+        originalName =
+                Paths.get(originalName)
+                        .getFileName()
+                        .toString();
+
+        String fileName =
+                System.currentTimeMillis()
+                        + "_"
+                        + originalName;
+
+        Path path =
+                Paths.get(uploadDir)
+                        .resolve(fileName)
+                        .normalize();
+
+        Files.write(
+                path,
+                file.getBytes());
 
         student.setImage(fileName);
+
         studentRepo.save(student);
+
+        System.out.println(
+                "Profile image saved: " +
+                path.toAbsolutePath());
 
         return fileName;
     }
-    
+
+
     @DeleteMapping("/{id}/deleteImage")
-    public void deleteImage(@PathVariable Long id) {
+    public void deleteImage(
+            @PathVariable Long id) {
 
-        Student student = studentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+        Student student =
+                studentRepo.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Student not found"));
 
-        String fileName = student.getImage();
+        String fileName =
+                student.getImage();
 
-        try {
-            if (fileName != null) {
-                Path path = Paths.get(uploadDir).resolve(fileName);
+        if (fileName != null &&
+                !fileName.isBlank() &&
+                !"default".equalsIgnoreCase(
+                        fileName)) {
+
+            try {
+
+                Path path =
+                        Paths.get(uploadDir)
+                                .resolve(fileName)
+                                .normalize();
+
                 Files.deleteIfExists(path);
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
 
         student.setImage(null);
+
         studentRepo.save(student);
     }
+
+
     @PutMapping("/{id}/add-skill")
-    public Student addSkill(@PathVariable Long id, @RequestParam String skill) {
+    public Student addSkill(
+            @PathVariable Long id,
+            @RequestParam String skill) {
 
-        Student student = studentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+        Student student =
+                studentRepo.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Student not found"));
 
-        String skillsJson = student.getSkills();
+        String skillsJson =
+                student.getSkills();
 
-        List<String> skills = new ArrayList<>();
+        List<String> skills =
+                new ArrayList<>();
 
         try {
+
             if (skillsJson != null) {
-                skills = new ObjectMapper().readValue(skillsJson, List.class);
+
+                skills =
+                        new ObjectMapper()
+                                .readValue(
+                                        skillsJson,
+                                        List.class);
             }
-        } catch (Exception e) {}
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
 
         skills.add(skill);
 
         try {
-            student.setSkills(new ObjectMapper().writeValueAsString(skills));
-        } catch (Exception e) {}
+
+            student.setSkills(
+                    new ObjectMapper()
+                            .writeValueAsString(
+                                    skills));
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
 
         return studentRepo.save(student);
     }
-    
+
+
     @PutMapping("/{id}/delete-skill")
-    public Student deleteSkill(@PathVariable Long id, @RequestParam String skill) {
+    public Student deleteSkill(
+            @PathVariable Long id,
+            @RequestParam String skill) {
 
-        Student student = studentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+        Student student =
+                studentRepo.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Student not found"));
 
-        List<String> skills = new ArrayList<>();
+        List<String> skills =
+                new ArrayList<>();
 
         try {
+
             if (student.getSkills() != null) {
-                skills = new ObjectMapper().readValue(student.getSkills(), List.class);
+
+                skills =
+                        new ObjectMapper()
+                                .readValue(
+                                        student.getSkills(),
+                                        List.class);
             }
-        } catch (Exception e) {}
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
 
         skills.remove(skill);
 
         try {
-            student.setSkills(new ObjectMapper().writeValueAsString(skills));
-        } catch (Exception e) {}
+
+            student.setSkills(
+                    new ObjectMapper()
+                            .writeValueAsString(
+                                    skills));
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
 
         return studentRepo.save(student);
     }
-    
+
+
     @PutMapping("/{id}/add-link")
-    public Student addLink(@PathVariable Long id, @RequestParam String link) {
+    public Student addLink(
+            @PathVariable Long id,
+            @RequestParam String link) {
 
-        Student student = studentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+        Student student =
+                studentRepo.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Student not found"));
 
-        List<String> links = new ArrayList<>();
+        List<String> links =
+                new ArrayList<>();
 
         try {
+
             if (student.getLinks() != null) {
-                links = new ObjectMapper().readValue(student.getLinks(), List.class);
+
+                links =
+                        new ObjectMapper()
+                                .readValue(
+                                        student.getLinks(),
+                                        List.class);
             }
-        } catch (Exception e) {}
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
 
         links.add(link);
 
         try {
-            student.setLinks(new ObjectMapper().writeValueAsString(links));
-        } catch (Exception e) {}
+
+            student.setLinks(
+                    new ObjectMapper()
+                            .writeValueAsString(
+                                    links));
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
 
         return studentRepo.save(student);
     }
-    
+
+
     @PutMapping("/{id}/delete-link")
-    public Student deleteLink(@PathVariable Long id, @RequestParam String link) {
+    public Student deleteLink(
+            @PathVariable Long id,
+            @RequestParam String link) {
 
-        Student student = studentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+        Student student =
+                studentRepo.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Student not found"));
 
-        List<String> links = new ArrayList<>();
+        List<String> links =
+                new ArrayList<>();
 
         try {
+
             if (student.getLinks() != null) {
-                links = new ObjectMapper().readValue(student.getLinks(), List.class);
+
+                links =
+                        new ObjectMapper()
+                                .readValue(
+                                        student.getLinks(),
+                                        List.class);
             }
-        } catch (Exception e) {}
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
 
         links.remove(link);
 
         try {
-            student.setLinks(new ObjectMapper().writeValueAsString(links));
-        } catch (Exception e) {}
+
+            student.setLinks(
+                    new ObjectMapper()
+                            .writeValueAsString(
+                                    links));
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
 
         return studentRepo.save(student);
     }

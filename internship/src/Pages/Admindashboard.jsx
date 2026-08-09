@@ -1,242 +1,629 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../Styles/AdminDashboard.css";
 import Headerfordash from "../Components/Headerfordash";
 import Loader from "../Components/Loader";
 import toast from "react-hot-toast";
+
 import {
+  LayoutDashboard,
   FileText,
   Users,
   UserCheck,
   TrendingUp,
-  LayoutDashboard,
   ClipboardCheck,
   User,
 } from "lucide-react";
+
+import "../Styles/AdminDashboard.css";
+
 const AdminDashboard = () => {
+  const storedAdmin =
+      JSON.parse(
+        localStorage.getItem("adminProfile")
+      ) || {};
+  
+    const [admin, setAdmin] =
+      useState(storedAdmin);
   const navigate = useNavigate();
+
   const [internships, setInternships] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  /* =========================================================
+     LOAD DASHBOARD DATA
+  ========================================================= */
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const admin = JSON.parse(localStorage.getItem("adminProfile"));
+
+      const storedAdmin =
+        localStorage.getItem("adminProfile");
+
+      const admin = storedAdmin
+        ? JSON.parse(storedAdmin)
+        : {};
+
       const employerId = admin?.id;
+
+      if (!employerId) {
+        toast.error("Admin information not found.");
+        setLoading(false);
+        return;
+      }
+
+      /* =========================
+         INTERNSHIPS
+      ========================= */
+
       const internshipsRes = await fetch(
         `https://remote-internship-30135.onrender.com/api/internships/employer/${employerId}`
       );
-      const internshipsData = await internshipsRes.json();
+
+      if (!internshipsRes.ok) {
+        throw new Error(
+          "Failed to fetch internships"
+        );
+      }
+
+      const internshipsData =
+        await internshipsRes.json();
+
+      /* =========================
+         APPLICATIONS
+      ========================= */
+
       const applicationsRes = await fetch(
         `https://remote-internship-30135.onrender.com/api/applications/employer/${employerId}`
       );
-      const applicationsData = await applicationsRes.json();
-      setInternships(Array.isArray(internshipsData) ? internshipsData : []);
-      setApplications(Array.isArray(applicationsData) ? applicationsData : []);
-    } catch (err) {
-      console.error("Error fetching dashboard data:", err);
+
+      if (!applicationsRes.ok) {
+        throw new Error(
+          "Failed to fetch applications"
+        );
+      }
+
+      const applicationsData =
+        await applicationsRes.json();
+
+      setInternships(
+        Array.isArray(internshipsData)
+          ? internshipsData
+          : []
+      );
+
+      setApplications(
+        Array.isArray(applicationsData)
+          ? applicationsData
+          : []
+      );
+    } catch (error) {
+      console.error(
+        "Error fetching dashboard data:",
+        error
+      );
+
       setInternships([]);
       setApplications([]);
+
+      toast.error(
+        "Couldn't load dashboard data."
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  /* =========================================================
+     INITIAL LOAD
+  ========================================================= */
+
   useEffect(() => {
     loadData();
+
+    window.addEventListener(
+      "focus",
+      loadData
+    );
+
+    return () => {
+      window.removeEventListener(
+        "focus",
+        loadData
+      );
+    };
   }, []);
+
+  /* =========================================================
+     STATISTICS
+  ========================================================= */
+
   const underReview = applications.filter(
-    (app) => app.status?.toUpperCase() === "UNDER REVIEW" || app.status?.toUpperCase() === "PENDING"
+    (app) => {
+      const status =
+        app.status?.toUpperCase();
+
+      return (
+        status === "UNDER REVIEW" ||
+        status === "PENDING"
+      );
+    }
   ).length;
+
   const approved = applications.filter(
-    (app) => app.status?.toUpperCase() === "APPROVED"
+    (app) =>
+      app.status?.toUpperCase() ===
+      "APPROVED"
   );
-  const avgCompletion = approved.length
-    ? Math.round(
-        approved.reduce((sum, app) => sum + (app.progress || 0), 0) /
-          approved.length
-      )
-    : 0;
+
+  const avgCompletion =
+    approved.length === 0
+      ? 0
+      : Math.round(
+          approved.reduce(
+            (sum, app) =>
+              sum +
+              (Number(app.progress) || 0),
+            0
+          ) / approved.length
+        );
+
+  /* =========================================================
+     STATUS CLASS
+  ========================================================= */
+
+  const getStatusClass = (status) => {
+    if (!status) return "";
+
+    return status
+      .toUpperCase()
+      .replace(/\s+/g, "-");
+  };
+
+  /* =========================================================
+     RENDER
+  ========================================================= */
 
   return (
     <>
-      <div>
-        <aside className="admin-sidebar">
-          <button
-            className="active"
-            onClick={() => navigate("/admin-dashboard")}
-          >
-            <LayoutDashboard size={18} />
-            Dashboard
-          </button>
-          <button onClick={() => navigate("/post-internship")}>
-            <FileText size={18} />
-            Post Internship
-          </button>
-          <button onClick={() => navigate("/applications")}>
-            <Users size={18} />
-            Applications
-          </button>
-          <button onClick={() => navigate("/track-progress")}>
-            <TrendingUp size={18} />
-            Track Progress
-          </button>
-          <button onClick={() => navigate("/evaluations")}>
-            <ClipboardCheck size={18} />
-            Evaluations
-          </button>
-          <button onClick={() => navigate("/admin-profile")}>
-            <User size={18} />
-            Profile
-          </button>
+
+      <div className="admin-layout">
+
+        {/* ===================================================
+            SIDEBAR
+        =================================================== */}
+
+        <aside className="sd-sidebar">
+
+          <nav className="sd-nav">
+
+            {/* Dashboard */}
+
+            <NavButton
+              active
+              icon={LayoutDashboard}
+              label="Dashboard"
+              onClick={() =>
+                navigate(
+                  "/admin-dashboard"
+                )
+              }
+            />
+
+            {/* Post Internship */}
+
+            <NavButton
+              icon={FileText}
+              label="Post Internship"
+              onClick={() =>
+                navigate(
+                  "/post-internship"
+                )
+              }
+            />
+
+            {/* Applications */}
+
+            <NavButton
+              icon={Users}
+              label="Applications"
+              onClick={() =>
+                navigate(
+                  "/applications"
+                )
+              }
+            />
+
+            {/* Track Progress */}
+
+            <NavButton
+              icon={TrendingUp}
+              label="Track Progress"
+              onClick={() =>
+                navigate(
+                  "/track-progress"
+                )
+              }
+            />
+
+            {/* Evaluations */}
+
+            <NavButton
+              icon={ClipboardCheck}
+              label="Evaluations"
+              onClick={() =>
+                navigate(
+                  "/evaluations"
+                )
+              }
+            />
+
+            {/* Profile */}
+
+            <NavButton
+              icon={User}
+              label="Profile"
+              onClick={() =>
+                navigate(
+                  "/admin-profile"
+                )
+              }
+            />
+
+          </nav>
+
         </aside>
 
-        <main className="admin-main">
-          <div className="page-header">
-            <h1>Dashboard</h1>
-            <p>
-              Welcome back! Here's an overview of your internship programs.
-            </p>
-          </div>
+        {/* ===================================================
+            MAIN
+        =================================================== */}
+
+        <main className="sd-main">
+
           {loading ? (
             <Loader />
           ) : (
             <>
-              <section className="stats-grid">
-                <div className="stat-card" onClick={() => navigate("/post-internship")} style={{cursor: "pointer"}}>
-                  <div className="stat-left">
-                    <p >Active Internships</p>
-                    <h3>{internships.length}</h3>
-                  </div>
-                  <FileText className="stat-icon blue" size={32} />
-                </div>
+              {/* =============================================
+                  PAGE HEADER
+              ============================================= */}
 
-                <div className="stat-card" onClick={() => navigate("/applications")} style={{cursor: "pointer"}}>
-                  <div className="stat-left">
-                    <p>Pending Applications</p>
-                    <h3>{underReview}</h3>
-                  </div>
-                  <Users className="stat-icon orange" size={32} />
-                </div>
+              <div className="sd-header-section">
 
-                <div className="stat-card" onClick={() => navigate("/applications")} style={{cursor: "pointer"}}>
-                  <div className="stat-left">
-                    <p>Active Interns</p>
-                    <h3>{approved.length}</h3>
-                  </div>
-                  <UserCheck className="stat-icon green" size={32} />
-                </div>
+                <h1>
+                  {admin.name ||
+                "Admin"}'s Dashboard
+                </h1>
 
-                <div className="stat-card" onClick={() => navigate("/track-progress")} style={{cursor: "pointer"}}>
-                  <div className="stat-left">
-                    <p>Avg Completion</p>
-                    <h3>{avgCompletion}%</h3>
-                  </div>
-                  <TrendingUp className="stat-icon purple" size={32} />
-                </div>
-              </section>
+                <p>
+                  Welcome back! Here's an
+                  overview of your internship
+                  programs.
+                </p>
 
-              <section className="dashboard-card">
-                <h2>Quick Actions</h2>
+              </div>
 
-                <div className="quick-actions-grid">
-                  <button
-                    className="quick-action primary"
-                    onClick={() => navigate("/post-internship")}
-                  >
-                    <FileText size={18} />
-                    Post New Internship
-                  </button>
+              {/* =============================================
+                  STATISTICS
+              ============================================= */}
 
-                  <button
-                    className="quick-action secondary"
-                    onClick={() => navigate("/applications")}
-                  >
-                    <Users size={18} />
-                    Review Applications
-                  </button>
+              <div className="sd-stats-grid">
 
-                  <button
-                    className="quick-action secondary"
-                    onClick={() => navigate("/evaluations")}
-                  >
-                    <ClipboardCheck size={18} />
-                    Create Evaluation
-                  </button>
-                </div>
-              </section>
-              <section className="dashboard-card">
-                <h2>Intern Progress Overview</h2>
-
-                {approved.length === 0 ? (
-                  <p style={{ color: "#6b7280" }}>
-                    No approved interns yet.
-                  </p>
-                ) : (
-                  approved.slice(0, 3).map((intern) => (
-                    <div key={intern.id} className="progress-card">
-                      <div className="progress-header">
-                        <h4>{intern.studentName || intern.fullName}</h4>
-                        <span>{intern.progress || 0}%</span>
-                      </div>
-
-                      <div className="progress-bar">
-                        <div
-                          className="progress-fill"
-                          style={{
-                            width: `${intern.progress || 0}%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </section>
-
-              <section className="dashboard-card">
-                <h2>Recent Applications</h2>
-
-                {applications.length === 0 ? (
-                  <p style={{ color: "#6b7280" }}>
-                    No applications found.
-                  </p>
-                ) : (
-                  applications.slice(0, 3).map((app) => (
-                    <div key={app.id} className="recent-card">
-                      <div>
-                        <h4>{app.studentName || app.fullName}</h4>
-                        <p>{app.internshipTitle || app.internship?.title}</p>
-                        <small>
-                          Applied: {app.appliedDate || "N/A"}
-                        </small>
-                      </div>
-
-                      <span
-                        className={`status-badge ${
-                          app.status?.replace(" ", "-")
-                        }`}
-                      >
-                        {app.status}
-                      </span>
-                    </div>
-                  ))
-                )}
+                {/* Active Internships */}
 
                 <div
-                  className="view-all-link"
-                  onClick={() => navigate("/applications")}
-                  style={{ cursor: "pointer", marginTop: "10px" }}
+                  className="sd-stat-card"
+                  onClick={() =>
+                    navigate(
+                      "/post-internship"
+                    )
+                  }
+                  style={{
+                    cursor: "pointer",
+                  }}
                 >
-                  View All Applications →
+
+                  <div className="sd-stat-info">
+
+                    <p className="sd-stat-label">
+                      Active Internships
+                    </p>
+
+                    <h3 className="sd-stat-value">
+                      {internships.length}
+                    </h3>
+
+                  </div>
+
+                  <div className="sd-stat-icon blue">
+                    <FileText size={28} />
+                  </div>
+
                 </div>
+
+                {/* Pending Applications */}
+
+                <div
+                  className="sd-stat-card"
+                  onClick={() =>
+                    navigate(
+                      "/applications"
+                    )
+                  }
+                  style={{
+                    cursor: "pointer",
+                  }}
+                >
+
+                  <div className="sd-stat-info">
+
+                    <p className="sd-stat-label">
+                      Pending Applications
+                    </p>
+
+                    <h3 className="sd-stat-value">
+                      {underReview}
+                    </h3>
+
+                  </div>
+
+                  <div className="sd-stat-icon orange">
+                    <Users size={28} />
+                  </div>
+
+                </div>
+
+                {/* Active Interns */}
+
+                <div
+                  className="sd-stat-card"
+                  onClick={() =>
+                    navigate(
+                      "/applications"
+                    )
+                  }
+                  style={{
+                    cursor: "pointer",
+                  }}
+                >
+
+                  <div className="sd-stat-info">
+
+                    <p className="sd-stat-label">
+                      Active Interns
+                    </p>
+
+                    <h3 className="sd-stat-value">
+                      {approved.length}
+                    </h3>
+
+                  </div>
+
+                  <div className="sd-stat-icon green">
+                    <UserCheck size={28} />
+                  </div>
+
+                </div>
+
+                {/* Average Completion */}
+
+                <div
+                  className="sd-stat-card"
+                  onClick={() =>
+                    navigate(
+                      "/track-progress"
+                    )
+                  }
+                  style={{
+                    cursor: "pointer",
+                  }}
+                >
+
+                  <div className="sd-stat-info">
+
+                    <p className="sd-stat-label">
+                      Avg Completion
+                    </p>
+
+                    <h3 className="sd-stat-value">
+                      {avgCompletion}%
+                    </h3>
+
+                  </div>
+
+                  <div className="sd-stat-icon purple">
+                    <TrendingUp size={28} />
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* =============================================
+                  QUICK ACTIONS
+              ============================================= */}
+
+              <section className="sd-card">
+
+                <h2>
+                  Quick Actions
+                </h2>
+
+                <div className="admin-quick-actions">
+
+                  <button
+                    className="admin-quick-action primary"
+                    onClick={() =>
+                      navigate(
+                        "/post-internship"
+                      )
+                    }
+                  >
+                    <FileText size={18} />
+
+                    <span>
+                      Post New Internship
+                    </span>
+                  </button>
+
+                  <button
+                    className="admin-quick-action"
+                    onClick={() =>
+                      navigate(
+                        "/applications"
+                      )
+                    }
+                  >
+                    <Users size={18} />
+
+                    <span>
+                      Review Applications
+                    </span>
+                  </button>
+
+                  <button
+                    className="admin-quick-action"
+                    onClick={() =>
+                      navigate(
+                        "/evaluations"
+                      )
+                    }
+                  >
+                    <ClipboardCheck
+                      size={18}
+                    />
+
+                    <span>
+                      Create Evaluation
+                    </span>
+                  </button>
+
+                </div>
+
               </section>
 
-              
+
+              {/* =============================================
+                  RECENT APPLICATIONS
+              ============================================= */}
+
+              <section className="sd-card">
+
+                <h2>
+                  Recent Applications
+                </h2>
+
+                {applications.length === 0 ? (
+
+                  <div className="admin-empty">
+                    No applications found.
+                  </div>
+
+                ) : (
+
+                  applications
+                    .slice(0, 3)
+                    .map((app) => (
+
+                      <div
+                        key={app.id}
+                        className="admin-recent-card"
+                      >
+
+                        <div>
+
+                          <h4>
+                            {app.studentName ||
+                              app.fullName ||
+                              "Student"}
+                          </h4>
+
+                          <p>
+                            {app.internshipTitle ||
+                              app.internship?.title ||
+                              "Internship"}
+                          </p>
+
+                          <small>
+                            Applied:{" "}
+                            {app.appliedDate ||
+                              "N/A"}
+                          </small>
+
+                        </div>
+
+                        <span
+                          className={`admin-status-badge ${getStatusClass(
+                            app.status
+                          )}`}
+                        >
+                          {app.status ||
+                            "Unknown"}
+                        </span>
+
+                      </div>
+
+                    ))
+                )}
+
+                {applications.length > 0 && (
+                  <div
+                    className="admin-view-all"
+                    onClick={() =>
+                      navigate(
+                        "/applications"
+                      )
+                    }
+                  >
+                    View All Applications →
+                  </div>
+                )}
+
+              </section>
+
             </>
           )}
+
         </main>
+
       </div>
     </>
   );
 };
+
+
+/* =========================================================
+   SIDEBAR BUTTON
+========================================================= */
+
+function NavButton({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+}) {
+  return (
+    <button
+      type="button"
+      className={`sd-nav-button ${
+        active ? "active" : ""
+      }`}
+      onClick={onClick}
+      aria-current={
+        active
+          ? "page"
+          : undefined
+      }
+    >
+      <Icon size={20} />
+
+      <span>
+        {label}
+      </span>
+    </button>
+  );
+}
+
 
 export default AdminDashboard;
