@@ -1,9 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../Styles/StudentDashboard.css";
-import HeaderforStudent from "../Components/HeaderforStudent";
-import Loader from "../Components/Loader";
 import toast from "react-hot-toast";
+
 import {
   LayoutDashboard,
   Search,
@@ -17,7 +15,10 @@ import {
   ListTodo,
 } from "lucide-react";
 
-const StudentDashboard = () => {
+import HeaderforStudent from "../Components/HeaderforStudent";
+import "../Styles/StudentDashboard.css";
+
+export default function StudentDashboard() {
   const navigate = useNavigate();
 
   const [student, setStudent] = useState({});
@@ -25,9 +26,15 @@ const StudentDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  /* =========================================================
+     LOAD DASHBOARD DATA
+  ========================================================= */
+
   const loadDashboardData = async () => {
-    const loggedStudent =
-      JSON.parse(localStorage.getItem("studentProfile")) || {};
+    if (typeof window === "undefined") return;
+
+    const stored = localStorage.getItem("studentProfile");
+    const loggedStudent = stored ? JSON.parse(stored) : {};
 
     setStudent(loggedStudent);
 
@@ -39,9 +46,18 @@ const StudentDashboard = () => {
     try {
       setLoading(true);
 
+      /* -------------------------------------------------------
+         Applications
+      ------------------------------------------------------- */
+
       const appRes = await fetch(
         `https://remote-internship-30135.onrender.com/api/applications/student/${loggedStudent.id}`
       );
+
+      if (!appRes.ok) {
+        throw new Error("Failed to load applications");
+      }
+
       const applications = await appRes.json();
 
       const approved = applications.filter(
@@ -50,19 +66,36 @@ const StudentDashboard = () => {
 
       setApprovedInternships(approved);
 
+      /* -------------------------------------------------------
+         Tasks
+      ------------------------------------------------------- */
+
       const taskRes = await fetch(
         `https://remote-internship-30135.onrender.com/api/tasks/student/${loggedStudent.id}`
       );
+
+      if (!taskRes.ok) {
+        throw new Error("Failed to load tasks");
+      }
+
       const taskData = await taskRes.json();
 
       setTasks(taskData);
-
-      setLoading(false);
     } catch (error) {
       console.error("Dashboard error:", error);
+
+      toast.error(
+        "Couldn't load your dashboard. Try refreshing."
+      );
+    } finally {
       setLoading(false);
     }
   };
+
+
+  /* =========================================================
+     INITIAL LOAD
+  ========================================================= */
 
   useEffect(() => {
     loadDashboardData();
@@ -74,124 +107,415 @@ const StudentDashboard = () => {
     };
   }, []);
 
-  const completed = tasks.filter(
-    (t) =>
-      t.status?.toLowerCase() === "completed" ||
-      t.status?.toLowerCase() === "submitted"
+
+  /* =========================================================
+     TASK STATISTICS
+  ========================================================= */
+
+  const completed = tasks.filter((task) =>
+    ["completed", "submitted"].includes(
+      task.status?.toLowerCase() ?? ""
+    )
   ).length;
+
 
   const inProgress = tasks.filter(
-    (t) => t.status?.toLowerCase() === "in progress"
+    (task) =>
+      task.status?.toLowerCase() === "in progress"
   ).length;
+
 
   const pending = tasks.filter(
-    (t) => t.status?.toLowerCase() === "pending"
+    (task) =>
+      task.status?.toLowerCase() === "pending"
   ).length;
 
+
   const totalTasks = tasks.length;
+
 
   const progress =
     totalTasks === 0
       ? 0
       : Math.round((completed / totalTasks) * 100);
 
+
+  /* =========================================================
+     STAT CARDS
+  ========================================================= */
+
+  const stats = [
+    {
+      label: "Total Tasks",
+      value: totalTasks,
+      icon: ListTodo,
+      color: "blue",
+    },
+    {
+      label: "Completed",
+      value: completed,
+      icon: CheckCircle,
+      color: "green",
+    },
+    {
+      label: "In Progress",
+      value: inProgress,
+      icon: TrendingUp,
+      color: "orange",
+    },
+    {
+      label: "Pending",
+      value: pending,
+      icon: Clock,
+      color: "purple",
+    },
+  ];
+
+
+  /* =========================================================
+     RENDER
+  ========================================================= */
+
   return (
     <>
 
-      <div className="admin-layout student-dashboard" style={{ paddingTop: "70px" }}>
-        <aside className="admin-sidebar">
-          <button className="active" onClick={() => navigate("/student-dashboard")}>
-            <LayoutDashboard size={18} />
-            Dashboard
-          </button>
+      <div className="sd-layout">
 
-          <button onClick={() => navigate("/browse-internships")}>
-            <Search size={18} />
-            Browse Internships
-          </button>
+        {/* ===================================================
+            SIDEBAR
+        =================================================== */}
 
-          <button onClick={() => navigate("/myapplications")}>
-            <FileText size={18} />
-            My Applications
-          </button>
+        <aside className="sd-sidebar">
 
-          <button onClick={() => navigate("/mytasks")}>
-            <ClipboardList size={18} />
-            My Tasks
-          </button>
+          <nav className="sd-nav">
 
-          <button onClick={() => navigate("/feedback")}>
-            <MessageSquare size={18} />
-            Feedback
-          </button>
+            <NavButton
+              active
+              icon={LayoutDashboard}
+              label="Dashboard"
+              onClick={() =>
+                navigate("/student-dashboard")
+              }
+            />
 
-          <button onClick={() => navigate("/student-profile")}>
-            <User size={18} />
-            Profile
-          </button>
+
+            <NavButton
+              icon={Search}
+              label="Browse Internships"
+              onClick={() =>
+                navigate("/browse-internships")
+              }
+            />
+
+
+            <NavButton
+              icon={FileText}
+              label="My Applications"
+              onClick={() =>
+                navigate("/myapplications")
+              }
+            />
+
+
+            <NavButton
+              icon={ClipboardList}
+              label="My Tasks"
+              onClick={() =>
+                navigate("/mytasks")
+              }
+            />
+
+
+            <NavButton
+              icon={MessageSquare}
+              label="Feedback"
+              onClick={() =>
+                navigate("/feedback")
+              }
+            />
+
+
+            <NavButton
+              icon={User}
+              label="Profile"
+              onClick={() =>
+                navigate("/student-profile")
+              }
+            />
+
+          </nav>
+
         </aside>
 
-        <main className="admin-main">
+
+        {/* ===================================================
+            MAIN CONTENT
+        =================================================== */}
+
+        <main className="sd-main">
+
           {loading ? (
             <Loader />
           ) : (
             <>
-              <div className="page-header">
+
+              {/* =================================================
+                  WELCOME
+              ================================================= */}
+
+              <div className="sd-header-section">
+
                 <h1>
-                  Welcome Back, {student.name || "Student"}!
+                  Welcome back,{" "}
+                  {student.name || "Student"}!
                 </h1>
-                <p>Here's an overview of your internship progress.</p>
+
+                <p>
+                  Here's an overview of your internship
+                  progress.
+                </p>
+
               </div>
 
-              {approvedInternships.length > 0 &&
-                approvedInternships.map((intern, index) => (
-                  <section key={index} className="dashboard-card">
-                    <h2>Current Internship</h2>
-                    <h3>{intern.internshipTitle}</h3>
-                    <p>{intern.companyName}</p>
 
-                    <div className="internship-details"
-                    >
-                      <div>
-                        <strong>Start Date</strong>
-                        <p>{intern.appliedDate || "N/A"}</p>
-                      </div>
+              {/* =================================================
+                  STATISTICS
+              ================================================= */}
 
-                      <div>
-                        <strong>Duration</strong>
-                        <p>{intern.duration || "N/A"}</p>
-                      </div>
+              <div className="sd-stats-grid">
 
-                      <div>
-                        <strong>Stipend</strong>
-                        <p>{intern.stipend || "N/A"}</p>
-                      </div>
-                    </div>
-                  </section>
-                ))}
+                {stats.map(
+                  ({
+                    label,
+                    value,
+                    icon: Icon,
+                    color,
+                  }) => (
 
-              <section className="dashboard-card">
-                <h2>Progress Overview</h2>
-
-                <div style={{ marginTop: "15px" }}>
-                  <div className="progress-track">
                     <div
-                      className="progress-fill"
-                      style={{ width: `${progress}%` }}
-                    />
+                      className="sd-stat-card"
+                      key={label}
+                    >
+
+                      <div className="sd-stat-info">
+
+                        <p className="sd-stat-label">
+                          {label}
+                        </p>
+
+                        <h3 className="sd-stat-value">
+                          {value}
+                        </h3>
+
+                      </div>
+
+
+                      <div
+                        className={`sd-stat-icon ${color}`}
+                      >
+                        <Icon size={28} />
+                      </div>
+
+                    </div>
+
+                  )
+                )}
+
+              </div>
+
+
+
+              {approvedInternships.length === 0 ? (
+
+                <section className="sd-card">
+
+                  <h2>
+                    Current Internship
+                  </h2>
+
+
+                  <div className="sd-empty">
+
+                    <h3>
+                      No active internship yet
+                    </h3>
+
+
+                    <p>
+                      Once one of your applications
+                      is approved, it'll show up here
+                      with your start date, duration,
+                      and stipend.
+                    </p>
+
                   </div>
 
-                  <p className="progress-text">
-                    {completed} of {totalTasks} tasks completed
+                </section>
+
+              ) : (
+
+                approvedInternships.map(
+                  (intern, index) => (
+
+                    <section
+                      key={index}
+                      className="sd-card"
+                    >
+
+                      <h2>
+                        Current Internship
+                      </h2>
+
+
+                      <h3 className="sd-internship-title">
+                        {intern.internshipTitle}
+                      </h3>
+
+
+                      <p className="sd-company">
+                        {intern.companyName}
+                      </p>
+
+
+                      <div className="sd-detail-grid">
+
+                        <div className="sd-detail">
+
+                          <strong>
+                            Start Date
+                          </strong>
+
+                          <p>
+                            {intern.appliedDate ||
+                              "N/A"}
+                          </p>
+
+                        </div>
+
+
+                        <div className="sd-detail">
+
+                          <strong>
+                            Duration
+                          </strong>
+
+                          <p>
+                            {intern.duration ||
+                              "N/A"}
+                          </p>
+
+                        </div>
+
+
+                        <div className="sd-detail">
+
+                          <strong>
+                            Stipend
+                          </strong>
+
+                          <p>
+                            {intern.stipend ||
+                              "N/A"}
+                          </p>
+
+                        </div>
+
+                      </div>
+
+                    </section>
+
+                  )
+                )
+
+              )}
+
+
+              <section className="sd-card">
+
+                <h2>
+                  Progress Overview
+                </h2>
+
+
+                <div className="sd-progress">
+
+                  <div className="sd-progress-track">
+
+                    <div
+                      className="sd-progress-fill"
+                      style={{
+                        width: `${progress}%`,
+                      }}
+                    />
+
+                  </div>
+
+
+                  <p className="sd-progress-text">
+
+                    {totalTasks === 0
+                      ? "No tasks assigned yet"
+                      : `${completed} of ${totalTasks} tasks completed (${progress}%)`}
+
                   </p>
+
                 </div>
+
               </section>
+
             </>
           )}
+
         </main>
+
       </div>
     </>
   );
-};
+}
 
-export default StudentDashboard;
+
+function NavButton({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+}) {
+  return (
+    <button
+      className={`sd-nav-button ${
+        active ? "active" : ""
+      }`}
+      onClick={onClick}
+      aria-current={
+        active ? "page" : undefined
+      }
+    >
+
+      <Icon size={20} />
+
+      <span>
+        {label}
+      </span>
+
+    </button>
+  );
+}
+
+
+/* =============================================================
+   LOADER
+============================================================= */
+
+function Loader() {
+  return (
+    <div className="sd-loader">
+
+      <div className="sd-spinner"></div>
+
+      <p>
+        Loading your dashboard…
+      </p>
+
+    </div>
+  );
+}

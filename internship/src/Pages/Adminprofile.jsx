@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Loader from "../Components/Loader";
 import "../Styles/AdminProfile.css";
 import toast from "react-hot-toast";
+
 import {
   LayoutDashboard,
   FileText,
@@ -12,16 +13,33 @@ import {
   User,
 } from "lucide-react";
 
+const NavButton = ({ active, icon: Icon, label, onClick }) => {
+  return (
+    <button
+      type="button"
+      className={`sd-nav-button ${active ? "active" : ""}`}
+      onClick={onClick}
+    >
+      <Icon size={18} />
+      <span>{label}</span>
+    </button>
+  );
+};
+
 const AdminProfile = () => {
   const navigate = useNavigate();
 
-  const storedAdmin = JSON.parse(localStorage.getItem("adminProfile"));
+  const storedAdmin =
+    JSON.parse(localStorage.getItem("adminProfile")) || {};
+
   const token = localStorage.getItem("token");
+
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [profile, setProfile] = useState(storedAdmin || {});
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [roleInput, setRoleInput] = useState("");
+
   const [extraData, setExtraData] = useState({
     industry: storedAdmin?.industry || "",
     companySize: storedAdmin?.companySize || "",
@@ -36,6 +54,11 @@ const AdminProfile = () => {
       }
     })(),
   });
+
+  /* =========================
+     LOAD ADMIN PROFILE
+  ========================= */
+
   useEffect(() => {
     if (!storedAdmin?.id) {
       setLoading(false);
@@ -44,31 +67,59 @@ const AdminProfile = () => {
 
     setLoading(true);
 
-    fetch(`https://remote-internship-30135.onrender.com/api/employers/${storedAdmin.id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
+    fetch(
+      `https://remote-internship-30135.onrender.com/api/employers/${storedAdmin.id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
-    })
-      .then((res) => res.json())
+    )
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to load profile");
+        }
+
+        return res.json();
+      })
       .then((data) => {
         setProfile(data);
+
+        let hiringRoles = [];
+
+        try {
+          hiringRoles = data.hiringRoles
+            ? JSON.parse(data.hiringRoles)
+            : [];
+        } catch {
+          hiringRoles = [];
+        }
 
         setExtraData({
           industry: data.industry || "",
           companySize: data.companySize || "",
           description: data.description || "",
-          hiringRoles: data.hiringRoles
-            ? JSON.parse(data.hiringRoles)
-            : [],
+          hiringRoles,
         });
+
+        localStorage.setItem(
+          "adminProfileFull",
+          JSON.stringify(data)
+        );
 
         setLoading(false);
       })
       .catch((err) => {
-        console.error(err);
+        console.error("Profile loading error:", err);
+        toast.error("Couldn't load your profile.");
         setLoading(false);
       });
   }, [storedAdmin?.id]);
+
+  /* =========================
+     PROFILE COMPLETION
+  ========================= */
+
   const fields = [
     profile.companyname,
     profile.empname,
@@ -84,10 +135,24 @@ const AdminProfile = () => {
     (fields.filter(Boolean).length / fields.length) * 100
   );
 
+  /* =========================
+     HANDLE PROFILE CHANGE
+  ========================= */
+
   const handleChange = (e) => {
-    setProfile({ ...profile, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    setProfile((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
-  const handleSave = () => {
+
+  /* =========================
+     SAVE PROFILE
+  ========================= */
+
+  const handleSave = async () => {
     const updated = {
       companyname: profile.companyname,
       empname: profile.empname,
@@ -95,35 +160,80 @@ const AdminProfile = () => {
       location: profile.location,
       website: profile.website,
       phonenumber: profile.phonenumber,
+
       industry: extraData.industry,
       companySize: extraData.companySize,
       description: extraData.description,
-      hiringRoles: JSON.stringify(extraData.hiringRoles),
+
+      hiringRoles: JSON.stringify(
+        extraData.hiringRoles
+      ),
+
       image: profile.image,
     };
 
-    setProfile((prev) => ({ ...prev, ...updated }));
-    setEditMode(false);
+    try {
+      const res = await fetch(
+        `https://remote-internship-30135.onrender.com/api/employers/${profile.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(updated),
+        }
+      );
 
-    fetch(`https://remote-internship-30135.onrender.com/api/employers/${profile.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(updated),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        localStorage.setItem("adminProfile", JSON.stringify(data));
-      })
-      .catch((err) => console.error(err));
+      if (!res.ok) {
+        throw new Error("Failed to update profile");
+      }
+
+      const data = await res.json();
+
+      setProfile((prev) => ({
+        ...prev,
+        ...data,
+      }));
+
+      localStorage.setItem(
+        "adminProfile",
+        JSON.stringify(data)
+      );
+
+      localStorage.setItem(
+        "adminProfileFull",
+        JSON.stringify(data)
+      );
+
+      setEditMode(false);
+
+      toast.success("Profile updated successfully!");
+    } catch (err) {
+      console.error("Profile update error:", err);
+
+      toast.error("Failed to update profile.");
+    }
   };
+
+
+  const DEFAULT_IMAGE =
+    "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
   const imageSrc =
-    profile.image
+    profile?.image &&
+      profile.image !== "default"
       ? profile.image.startsWith("data:")
         ? profile.image
-        : `https://remote-internship-30135.onrender.com/api/employers/image/${profile.image}`
-      : "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-  const handleImageUpload = (e) => {
+        : `https://remote-internship-30135.onrender.com/api/employers/image/${encodeURIComponent(
+          profile.image
+        )}`
+      : DEFAULT_IMAGE;
+
+
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
+
     if (!file) return;
 
     const maxSize = 2 * 1024 * 1024;
@@ -132,320 +242,603 @@ const AdminProfile = () => {
       toast.error("Image size should be less than 2MB");
       return;
     }
+
     if (!file.type.startsWith("image/")) {
-      toast.error("Only image files allowed");
+      toast.error("Only image files are allowed");
       return;
     }
+
     const formData = new FormData();
+
     formData.append("file", file);
 
-    fetch(`https://remote-internship-30135.onrender.com/api/employers/${profile.id}/uploadImage`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      body: formData,
-    })
-      .then((res) => res.text())
-      .then((fileName) => {
-        setProfile((prev) => ({ ...prev, image: fileName }));
-      });
+    try {
+      const res = await fetch(
+        `https://remote-internship-30135.onrender.com/api/employers/${profile.id}/uploadImage`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Image upload failed");
+      }
+
+      const fileName = await res.text();
+
+      setProfile((prev) => ({
+        ...prev,
+        image: fileName,
+      }));
+
+      toast.success("Company logo uploaded!");
+    } catch (err) {
+      console.error("Image upload error:", err);
+
+      toast.error("Failed to upload image.");
+    }
   };
 
-  const removeImage = () => {
-    fetch(`https://remote-internship-30135.onrender.com/api/employers/${profile.id}/deleteImage`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`
+  /* =========================
+     REMOVE IMAGE
+  ========================= */
+
+  const removeImage = async () => {
+    try {
+      const res = await fetch(
+        `https://remote-internship-30135.onrender.com/api/employers/${profile.id}/deleteImage`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to remove image");
       }
-    })
-      .then(() => {
-        setProfile((prev) => ({ ...prev, image: "" }));
-      })
-      .catch((err) => console.error(err));
+
+      setProfile((prev) => ({
+        ...prev,
+        image: "",
+      }));
+
+      toast.success("Company logo removed.");
+    } catch (err) {
+      console.error("Remove image error:", err);
+
+      toast.error("Failed to remove image.");
+    }
   };
+
+  /* =========================
+     ADD HIRING ROLE
+  ========================= */
+
+  const addRole = () => {
+    const role = roleInput.trim();
+
+    if (!role) {
+      return;
+    }
+
+    if (
+      extraData.hiringRoles.some(
+        (item) =>
+          item.toLowerCase() === role.toLowerCase()
+      )
+    ) {
+      toast.error("Role already exists.");
+      return;
+    }
+
+    setExtraData((prev) => ({
+      ...prev,
+      hiringRoles: [
+        ...prev.hiringRoles,
+        role,
+      ],
+    }));
+
+    setRoleInput("");
+  };
+
+  /* =========================
+     REMOVE HIRING ROLE
+  ========================= */
+
+  const removeRole = (index) => {
+    setExtraData((prev) => ({
+      ...prev,
+      hiringRoles: prev.hiringRoles.filter(
+        (_, i) => i !== index
+      ),
+    }));
+  };
+
+  /* =========================
+     RETURN
+  ========================= */
 
   return (
+    <div className="admin-layout">
 
-    <div>
-      <aside className="admin-sidebar">
-        <button onClick={() => navigate("/admin-dashboard")}>
-          <LayoutDashboard size={18} /> Dashboard
-        </button>
-        <button onClick={() => navigate("/post-internship")}>
-          <FileText size={18} /> Post Internship
-        </button>
-        <button onClick={() => navigate("/applications")}>
-          <Users size={18} /> Applications
-        </button>
-        <button onClick={() => navigate("/track-progress")}>
-          <TrendingUp size={18} /> Track Progress
-        </button>
-        <button onClick={() => navigate("/evaluations")}>
-          <ClipboardCheck size={18} /> Evaluations
-        </button>
-        <button className="active">
-          <User size={18} /> Profile
-        </button>
+      {/* =========================
+          SIDEBAR
+      ========================= */}
+
+      <aside className="sd-sidebar">
+        <nav className="sd-nav">
+
+          <NavButton
+            icon={LayoutDashboard}
+            label="Dashboard"
+            onClick={() => navigate("/admin-dashboard")}
+          />
+
+          <NavButton
+            icon={FileText}
+            label="Post Internship"
+            onClick={() => navigate("/post-internship")}
+          />
+
+          <NavButton
+            icon={Users}
+            label="Applications"
+            onClick={() => navigate("/applications")}
+          />
+
+          <NavButton
+            icon={TrendingUp}
+            label="Track Progress"
+            onClick={() => navigate("/track-progress")}
+          />
+
+          <NavButton
+            icon={ClipboardCheck}
+            label="Evaluations"
+            onClick={() => navigate("/evaluations")}
+          />
+
+          <NavButton
+            active
+            icon={User}
+            label="Profile"
+            onClick={() => navigate("/admin-profile")}
+          />
+
+        </nav>
       </aside>
 
+      {/* =========================
+          MAIN
+      ========================= */}
+
       <main className="admin-main">
+
         {loading ? (
           <Loader />
         ) : (
           <>
+
+            {/* =========================
+                PROFILE HEADER
+            ========================= */}
+
             <div className="profile-header">
-              <div className="dashboard-card profile-completion-card">
-                <h2>Profile Completion</h2>
+
+              <div>
+                <h1>
+                  {profile.empname ||
+                    "Admin"}
+                </h1>
+
+                <h2>
+                  {profile.companyname ||
+                    "Company"}
+                </h2>
+
+                <p>
+                  Manage your company profile
+                </p>
+              </div>
+
+              <div className="profile-completion-card dashboard-card">
+
+                <h2>
+                  Profile Completion
+                </h2>
 
                 <div className="progress-track">
+
                   <div
                     className="progress-fill"
                     style={{
                       width: `${completion}%`,
                     }}
                   />
+
                 </div>
 
                 <p className="progress-text">
                   {completion}% Complete
                 </p>
-              </div>
-              <div>
-                <h1>{profile.empname}</h1>
-                <h2>{profile.companyname}</h2>
-                <p style={{ color: "#6b7280" }}>
-                  Manage your company profile
-                </p>
+
               </div>
 
               {!editMode ? (
                 <button
                   className="primary-btn"
-                  onClick={() => setEditMode(true)}
+                  onClick={() =>
+                    setEditMode(true)
+                  }
                 >
                   Edit Profile
                 </button>
               ) : (
-                <button className="primary-btn" onClick={handleSave}>
+                <button
+                  className="primary-btn"
+                  onClick={handleSave}
+                >
                   Save Changes
                 </button>
               )}
+
             </div>
 
+            {/* =========================
+                PROFILE CONTAINER
+            ========================= */}
+
             <div className="profile-container">
+
+              {/* PROFILE CARD */}
+
               <div className="profile-card">
+
                 <img
                   src={imageSrc}
-                  alt="profile"
-                  style={{ cursor: "pointer" }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowImagePreview(true);
-                  }}
+                  alt="Company profile"
+                  onClick={() =>
+                    setShowImagePreview(true)
+                  }
                 />
-                <h2>{profile.empname}</h2>
-                <p>{profile.email}</p>
+
+                <h2>
+                  {profile.empname ||
+                    "Admin"}
+                </h2>
+
+                <p>
+                  {profile.email ||
+                    "admin@gmail.com"}
+                </p>
+
+                {/* IMAGE UPLOAD */}
+
                 {editMode && (
                   <>
-                    <div
-                      style={{
-                        border: "2px dashed #ccc",
-                        padding: "15px",
-                        borderRadius: "10px",
-                        textAlign: "center",
-                        marginTop: "10px",
-                      }}
-                    >
-                      <p style={{ fontSize: "13px", color: "#6b7280" }}>
+                    <div className="image-dropzone">
+
+                      <p>
                         Upload Company Logo
                       </p>
 
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={(e) => handleImageUpload(e)}
+                        onChange={
+                          handleImageUpload
+                        }
                       />
+
                     </div>
 
                     {profile.image && (
-                      <button className="delete-btn" onClick={removeImage}>
+                      <button
+                        className="delete-btn"
+                        onClick={removeImage}
+                      >
                         Remove Photo
                       </button>
                     )}
                   </>
                 )}
-                <h3 style={{ marginTop: "20px" }}>📞 Contact</h3>
+
+                {/* CONTACT */}
+
+                <h3
+                  style={{
+                    marginTop: "20px",
+                  }}
+                >
+                  📞 Contact
+                </h3>
+
                 <div className="profile-row">
-                  <label>Phone :-</label>
+
+                  <label>
+                    Phone
+                  </label>
+
                   {editMode ? (
                     <input
                       name="phonenumber"
-                      value={profile.phonenumber || ""}
-                      onChange={handleChange}
+                      value={
+                        profile.phonenumber ||
+                        ""
+                      }
+                      onChange={
+                        handleChange
+                      }
                     />
                   ) : (
-                    <span>{profile.phonenumber}</span>
+                    <span>
+                      {profile.phonenumber ||
+                        "Not provided"}
+                    </span>
                   )}
+
                 </div>
+
               </div>
 
-              <div className="profile-details">
-                <h3>🏢 Company Details</h3>
+              {/* COMPANY DETAILS */}
 
-                {["empname", "companyname", "location", "website"].map((field) => (
-                  <div key={field} className="profile-row">
-                    <label>{field}</label>
+              <div className="profile-details">
+
+                <h3>
+                  🏢 Company Details
+                </h3>
+
+                {[
+                  "empname",
+                  "companyname",
+                  "location",
+                  "website",
+                ].map((field) => (
+
+                  <div
+                    key={field}
+                    className="profile-row"
+                  >
+
+                    <label>
+                      {field}
+                    </label>
+
                     {editMode ? (
                       <input
                         name={field}
-                        value={profile[field] || ""}
-                        onChange={handleChange}
+                        value={
+                          profile[field] ||
+                          ""
+                        }
+                        onChange={
+                          handleChange
+                        }
                       />
                     ) : (
-                      <span>{profile[field]}</span>
+                      <span>
+                        {profile[field] ||
+                          "Not provided"}
+                      </span>
                     )}
+
                   </div>
+
                 ))}
 
+                {/* INDUSTRY */}
+
                 <div className="profile-row">
-                  <label>Industry</label>
+
+                  <label>
+                    Industry
+                  </label>
+
                   {editMode ? (
                     <input
-                      value={extraData.industry}
+                      value={
+                        extraData.industry
+                      }
                       onChange={(e) =>
                         setExtraData({
                           ...extraData,
-                          industry: e.target.value,
+                          industry:
+                            e.target.value,
                         })
                       }
                     />
                   ) : (
-                    <span>{extraData.industry}</span>
+                    <span>
+                      {extraData.industry ||
+                        "Not provided"}
+                    </span>
                   )}
+
                 </div>
 
+                {/* COMPANY SIZE */}
+
                 <div className="profile-row">
-                  <label>Company Size</label>
+
+                  <label>
+                    Company Size
+                  </label>
+
                   {editMode ? (
                     <input
-                      value={extraData.companySize}
+                      value={
+                        extraData.companySize
+                      }
                       onChange={(e) =>
                         setExtraData({
                           ...extraData,
-                          companySize: e.target.value,
+                          companySize:
+                            e.target.value,
                         })
                       }
                     />
                   ) : (
-                    <span>{extraData.companySize}</span>
+                    <span>
+                      {extraData.companySize ||
+                        "Not provided"}
+                    </span>
                   )}
-                </div>
 
+                </div>
 
               </div>
+
             </div>
 
+            {/* =========================
+                ABOUT COMPANY
+            ========================= */}
+
             <div className="dashboard-card">
-              <h2>About Company</h2>
+
+              <h2>
+                About Company
+              </h2>
 
               {editMode ? (
                 <textarea
-                  value={extraData.description}
+                  value={
+                    extraData.description
+                  }
                   onChange={(e) =>
                     setExtraData({
                       ...extraData,
-                      description: e.target.value,
+                      description:
+                        e.target.value,
                     })
                   }
                 />
               ) : (
-                <p>{extraData.description}</p>
+                <p>
+                  {extraData.description ||
+                    "No company description added yet."}
+                </p>
               )}
+
             </div>
 
+            {/* =========================
+                HIRING FOCUS
+            ========================= */}
+
             <div className="dashboard-card">
-              <h2>Hiring Focus</h2>
+
+              <h2>
+                Hiring Focus
+              </h2>
+
               {editMode && (
                 <div className="quick-actions-row">
+
                   <input
                     value={roleInput}
-                    onChange={(e) => setRoleInput(e.target.value)}
+                    onChange={(e) =>
+                      setRoleInput(
+                        e.target.value
+                      )
+                    }
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === "Enter"
+                      ) {
+                        e.preventDefault();
+                        addRole();
+                      }
+                    }}
                     placeholder="Add role (e.g. Frontend)"
                   />
+
                   <button
                     className="secondary-btn"
-                    onClick={() => {
-                      if (!roleInput.trim()) return;
-
-                      setExtraData({
-                        ...extraData,
-                        hiringRoles: [
-                          ...extraData.hiringRoles,
-                          roleInput,
-                        ],
-                      });
-
-                      setRoleInput("");
-                    }}
+                    onClick={addRole}
                   >
                     Add
                   </button>
+
                 </div>
               )}
 
-              {extraData.hiringRoles.map((r, i) => (
-                <span key={i} className="skill-chip">
-                  {r}
-                  {editMode && (
-                    <button
-                      className="delete-btn"
-                      style={{ marginLeft: "8px" }}
-                      onClick={() => {
-                        const updated =
-                          extraData.hiringRoles.filter(
-                            (_, index) => index !== i
-                          );
-                        setExtraData({
-                          ...extraData,
-                          hiringRoles: updated,
-                        });
-                      }}
+              {extraData.hiringRoles.length ===
+                0 ? (
+                <p>
+                  No hiring roles added yet.
+                </p>
+              ) : (
+                extraData.hiringRoles.map(
+                  (role, index) => (
+
+                    <span
+                      key={index}
+                      className="skill-chip"
                     >
-                      ×
-                    </button>
-                  )}
-                </span>
-              ))}
+
+                      {role}
+
+                      {editMode && (
+                        <button
+                          className="delete-btn"
+                          onClick={() =>
+                            removeRole(
+                              index
+                            )
+                          }
+                          aria-label={`Remove ${role}`}
+                        >
+                          ×
+                        </button>
+                      )}
+
+                    </span>
+
+                  )
+                )
+              )}
+
             </div>
+
           </>
         )}
+
+        {/* =========================
+            IMAGE PREVIEW
+        ========================= */}
+
         {showImagePreview && (
+
           <div
-            onClick={() => setShowImagePreview(false)}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100vw",
-              height: "100vh",
-              background: "rgba(0,0,0,0.98)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              zIndex: 999999,
-            }}
+            className="image-preview-overlay"
+            onClick={() =>
+              setShowImagePreview(false)
+            }
           >
+
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setShowImagePreview(false);
+
+                setShowImagePreview(
+                  false
+                );
               }}
               style={{
                 position: "absolute",
                 top: "20px",
                 right: "20px",
-                background: "rgba(255,255,255,0.2)",
+                background:
+                  "rgba(255,255,255,0.2)",
                 border: "none",
                 color: "#fff",
                 fontSize: "22px",
@@ -459,16 +852,15 @@ const AdminProfile = () => {
 
             <img
               src={imageSrc}
-              alt="preview"
-              style={{
-                maxWidth: "100%",
-                maxHeight: "100%",
-                objectFit: "contain",
-              }}
+              alt="Company preview"
             />
+
           </div>
+
         )}
+
       </main>
+
     </div>
   );
 };

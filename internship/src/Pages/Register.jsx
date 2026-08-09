@@ -362,8 +362,8 @@ const Register = () => {
             </button>
 
             <div className="link-row">
-              <a href="/login" className="registerbut">Already have an account? Login</a>
-              <a href="/" className="registerbut">Back to Home</a>
+              <a href="/login" className="usealignleft">Already have an account? Login</a>
+              <a href="/" className="usealignright">Back to Home</a>
             </div>
           </>
         )}
@@ -397,8 +397,8 @@ const Register = () => {
             </div>
 
             <div className="link-row">
-              <a href="/login" className="registerbut">Already have an account? Login</a>
-              <a href="/" className="registerbut">Back to Home</a>
+              <a href="/login" className="usealignleft">Already have an account? Login</a>
+              <a href="/" className="usealignright">Back to Home</a>
             </div>
           </>
         )}
@@ -460,8 +460,8 @@ const Register = () => {
             </div>
 
             <div className="link-row">
-              <a href="/login" className="registerbut">Already have an account? Login</a>
-              <a href="/" className="registerbut">Back to Home</a>
+              <a href="/login" className="usealignleft">Already have an account? Login</a>
+              <a href="/" className="usealignright">Back to Home</a>
             </div>
           </>
         )}

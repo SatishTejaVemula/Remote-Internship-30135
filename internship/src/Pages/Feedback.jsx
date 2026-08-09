@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import HeaderforStudent from "../Components/HeaderforStudent";
-import Loader from "../Components/Loader";
+
+import "../Styles/StudentDashboard.css";
 import "../Styles/Feedback.css";
+
 import toast from "react-hot-toast";
+
 import {
   LayoutDashboard,
   Search,
@@ -16,196 +20,659 @@ import {
   Award,
 } from "lucide-react";
 
+
 const Feedback = () => {
   const navigate = useNavigate();
 
-  const student =
-    JSON.parse(localStorage.getItem("studentProfile")) || {};
+  /* =========================================================
+     STUDENT
+  ========================================================= */
 
-  const [evaluations, setEvaluations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const student =
+    JSON.parse(
+      localStorage.getItem("studentProfile")
+    ) || {};
+
+
+  /* =========================================================
+     STATE
+  ========================================================= */
+
+  const [evaluations, setEvaluations] =
+    useState([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+
+  /* =========================================================
+     LOAD EVALUATIONS
+  ========================================================= */
 
   useEffect(() => {
-    if (!student.id) {
+    if (!student?.id) {
       setLoading(false);
       return;
     }
 
-    fetch(`https://remote-internship-30135.onrender.com/api/evaluations/student/${student.id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setEvaluations(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, []);
+    const loadEvaluations = async () => {
+      try {
+        setLoading(true);
 
-  const totalFeedback = evaluations.length;
+        const token =
+          localStorage.getItem("token");
+
+        const res = await fetch(
+          `https://remote-internship-30135.onrender.com/api/evaluations/student/${student.id}`,
+          {
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error(
+            "Failed to load evaluations"
+          );
+        }
+
+        const data =
+          await res.json();
+
+        setEvaluations(
+          Array.isArray(data)
+            ? data
+            : []
+        );
+
+      } catch (error) {
+        console.error(
+          "Feedback error:",
+          error
+        );
+
+        setEvaluations([]);
+
+        toast.error(
+          "Couldn't load your feedback."
+        );
+
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEvaluations();
+  }, [student?.id]);
+
+
+  /* =========================================================
+     STATISTICS
+  ========================================================= */
+
+  const totalFeedback =
+    evaluations.length;
+
 
   const avgRating =
     totalFeedback === 0
       ? 0
       : (
-        evaluations.reduce((sum, item) => sum + item.rating, 0) /
-        totalFeedback
-      ).toFixed(1);
+          evaluations.reduce(
+            (sum, item) =>
+              sum +
+              Number(item.rating || 0),
+            0
+          ) / totalFeedback
+        ).toFixed(1);
+
 
   const performancePercent =
-    totalFeedback === 0 ? 0 : Math.round((avgRating / 5) * 100);
+    totalFeedback === 0
+      ? 0
+      : Math.round(
+          (Number(avgRating) / 5) *
+            100
+        );
+
+
+  /* =========================================================
+     RENDER
+  ========================================================= */
 
   return (
     <>
-      <div className="admin-layout" style={{ paddingTop: "70px" }} >
 
-        <aside className="admin-sidebar">
-          <button onClick={() => navigate("/student-dashboard")}>
-            <LayoutDashboard size={18} />
-            Dashboard
-          </button>
+      <div className="sd-layout">
 
-          <button onClick={() => navigate("/browse-internships")}>
-            <Search size={18} />
-            Browse Internships
-          </button>
+        <aside className="sd-sidebar">
 
-          <button onClick={() => navigate("/myapplications")}>
-            <FileText size={18} />
-            My Applications
-          </button>
+          <nav className="sd-nav">
 
-          <button onClick={() => navigate("/mytasks")}>
-            <ClipboardList size={18} />
-            My Tasks
-          </button>
+            {/* Dashboard */}
 
-          <button className="active">
-            <MessageSquare size={18} />
-            Feedback
-          </button>
+            <NavButton
+              icon={LayoutDashboard}
+              label="Dashboard"
+              onClick={() =>
+                navigate(
+                  "/student-dashboard"
+                )
+              }
+            />
 
-          <button onClick={() => navigate("/student-profile")}>
-            <User size={18} />
-            Profile
-          </button>
+
+            {/* Browse */}
+
+            <NavButton
+              icon={Search}
+              label="Browse Internships"
+              onClick={() =>
+                navigate(
+                  "/browse-internships"
+                )
+              }
+            />
+
+
+            {/* Applications */}
+
+            <NavButton
+              icon={FileText}
+              label="My Applications"
+              onClick={() =>
+                navigate(
+                  "/myapplications"
+                )
+              }
+            />
+
+
+            {/* Tasks */}
+
+            <NavButton
+              icon={ClipboardList}
+              label="My Tasks"
+              onClick={() =>
+                navigate("/mytasks")
+              }
+            />
+
+
+            {/* Feedback */}
+
+            <NavButton
+              active
+              icon={MessageSquare}
+              label="Feedback"
+              onClick={() =>
+                navigate("/feedback")
+              }
+            />
+
+
+            {/* Profile */}
+
+            <NavButton
+              icon={User}
+              label="Profile"
+              onClick={() =>
+                navigate(
+                  "/student-profile"
+                )
+              }
+            />
+
+          </nav>
+
         </aside>
 
-        <main className="admin-main">
+
+        {/* ===================================================
+            MAIN CONTENT
+        =================================================== */}
+
+        <main className="sd-main">
+
           <div className="page-header">
-            <h1>Feedback & Evaluations</h1>
+
+            <h1>
+              Feedback & Evaluations
+            </h1>
+
             <p>
-              View feedback from your mentors and track your performance.
+              View feedback from your
+              mentors and track your
+              performance.
             </p>
+
           </div>
 
+
+          {/* =================================================
+              LOADER
+          ================================================= */}
+
           {loading ? (
-            <Loader />
+
+            <div className="sd-loader">
+
+              <div className="sd-spinner"></div>
+
+              <p>
+                Loading your feedback…
+              </p>
+
+            </div>
+
           ) : (
+
             <>
+
+
+              {/* =================================================
+                  STATISTICS
+              ================================================= */}
+
               <section className="stats-grid">
-                <div className="stat-card">
-                  <div className="stat-left">
-                    <p>Total Feedback</p>
-                    <h3>{totalFeedback}</h3>
-                  </div>
-                  <MessageSquare className="stat-icon blue" size={30} />
-                </div>
+
+
+                {/* Total Feedback */}
 
                 <div className="stat-card">
+
                   <div className="stat-left">
-                    <p>Average Rating</p>
-                    <h3>{avgRating}/5</h3>
+
+                    <p>
+                      Total Feedback
+                    </p>
+
+                    <h3>
+                      {totalFeedback}
+                    </h3>
+
                   </div>
-                  <Star className="stat-icon orange" size={30} />
+
+
+                  <div className="stat-icon blue">
+
+                    <MessageSquare
+                      size={28}
+                    />
+
+                  </div>
+
                 </div>
 
-                <div className="stat-card">
-                  <div className="stat-left">
-                    <p>Performance Score</p>
-                    <h3>{performancePercent}%</h3>
-                  </div>
-                  <TrendingUp className="stat-icon green" size={30} />
-                </div>
+
+                {/* Average Rating */}
 
                 <div className="stat-card">
+
                   <div className="stat-left">
-                    <p>Evaluations</p>
-                    <h3>{totalFeedback}</h3>
+
+                    <p>
+                      Average Rating
+                    </p>
+
+                    <h3>
+                      {avgRating}/5
+                    </h3>
+
                   </div>
-                  <Award className="stat-icon purple" size={30} />
+
+
+                  <div className="stat-icon orange">
+
+                    <Star
+                      size={28}
+                    />
+
+                  </div>
+
                 </div>
+
+
+                {/* Performance */}
+
+                <div className="stat-card">
+
+                  <div className="stat-left">
+
+                    <p>
+                      Performance Score
+                    </p>
+
+                    <h3>
+                      {performancePercent}%
+                    </h3>
+
+                  </div>
+
+
+                  <div className="stat-icon green">
+
+                    <TrendingUp
+                      size={28}
+                    />
+
+                  </div>
+
+                </div>
+
+
+                {/* Evaluations */}
+
+                <div className="stat-card">
+
+                  <div className="stat-left">
+
+                    <p>
+                      Evaluations
+                    </p>
+
+                    <h3>
+                      {totalFeedback}
+                    </h3>
+
+                  </div>
+
+
+                  <div className="stat-icon purple">
+
+                    <Award
+                      size={28}
+                    />
+
+                  </div>
+
+                </div>
+
               </section>
 
-              <div className="performance-card">
-                <h2>Performance Overview</h2>
 
-                <p>Overall Performance</p>
+              {/* =================================================
+                  PERFORMANCE OVERVIEW
+              ================================================= */}
+
+              <section className="performance-card">
+
+                <h2>
+                  Performance Overview
+                </h2>
+
+
+                <p>
+                  Overall Performance
+                </p>
+
+
                 <div className="progress-bar">
+
                   <div
-                    className="progress-fill"
-                    style={{ width: `${performancePercent}%` }}
-                  ></div>
+                    className="sd-progress-fill"
+                    style={{
+                      width:
+                        `${performancePercent}%`,
+                    }}
+                  />
+
                 </div>
-              </div>
 
-              <div className="feedback-section">
-                <h2>Recent Feedback</h2>
 
-                {evaluations.length === 0 ? (
-                  <p className="no-feedback">
-                    No feedback available yet.
-                  </p>
+                <div className="performance-percent">
+
+                  {performancePercent}%
+
+                </div>
+
+              </section>
+
+
+              {/* =================================================
+                  RECENT FEEDBACK
+              ================================================= */}
+
+              <section className="feedback-section">
+
+                <h2>
+                  Recent Feedback
+                </h2>
+
+
+                {evaluations.length ===
+                0 ? (
+
+                  <div className="no-feedback">
+
+                    <MessageSquare
+                      size={32}
+                    />
+
+                    <p>
+                      No feedback available
+                      yet.
+                    </p>
+
+                  </div>
+
                 ) : (
-                  evaluations.map((evalItem) => (
-                    <div key={evalItem.id} className="evaluation-card">
 
-                      <h2>{evalItem.internshipTitle}</h2>
+                  evaluations.map(
+                    (evalItem) => (
 
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <h3>{evalItem.taskTitle || "Task"}</h3>
-                        <strong className="rating-score">
-                          ⭐ {evalItem.rating}/5
-                        </strong>
+                      <div
+                        key={evalItem.id}
+                        className="evaluation-card"
+                      >
+
+
+                        {/* =====================================
+                            INTERNSHIP
+                        ===================================== */}
+
+                        <h2>
+                          {
+                            evalItem.internshipTitle ||
+                            "Internship"
+                          }
+                        </h2>
+
+
+                        {/* =====================================
+                            TASK + RATING
+                        ===================================== */}
+
+                        <div className="evaluation-header">
+
+                          <h3>
+                            {
+                              evalItem.taskTitle ||
+                              "Task"
+                            }
+                          </h3>
+
+
+                          <strong className="rating-score">
+
+                            ⭐{" "}
+                            {
+                              evalItem.rating ??
+                              0
+                            }
+                            /5
+
+                          </strong>
+
+                        </div>
+
+
+                        {/* =====================================
+                            TECHNICAL
+                        ===================================== */}
+
+                        <p>
+
+                          <strong>
+                            Technical:
+                          </strong>{" "}
+
+                          {
+                            evalItem.technical ||
+                            "Not provided"
+                          }
+
+                        </p>
+
+
+                        {/* =====================================
+                            COMMUNICATION
+                        ===================================== */}
+
+                        <p>
+
+                          <strong>
+                            Communication:
+                          </strong>{" "}
+
+                          {
+                            evalItem.communication ||
+                            "Not provided"
+                          }
+
+                        </p>
+
+
+                        {/* =====================================
+                            WORK ETHIC
+                        ===================================== */}
+
+                        <p>
+
+                          <strong>
+                            Work Ethic:
+                          </strong>{" "}
+
+                          {
+                            evalItem.workEthic ||
+                            "Not provided"
+                          }
+
+                        </p>
+
+
+                        {/* =====================================
+                            STRENGTHS
+                        ===================================== */}
+
+                        <p className="feedback-detail">
+
+                          <strong>
+                            Strengths:
+                          </strong>{" "}
+
+                          {
+                            evalItem.strengths ||
+                            "Not provided"
+                          }
+
+                        </p>
+
+
+                        {/* =====================================
+                            IMPROVEMENTS
+                        ===================================== */}
+
+                        <p>
+
+                          <strong>
+                            Areas for Improvement:
+                          </strong>{" "}
+
+                          {
+                            evalItem.improvements ||
+                            "Not provided"
+                          }
+
+                        </p>
+
+
+                        {/* =====================================
+                            FEEDBACK
+                        ===================================== */}
+
+                        {evalItem.feedback && (
+
+                          <div className="feedback-box">
+
+                            <strong>
+                              Feedback:
+                            </strong>{" "}
+
+                            {
+                              evalItem.feedback
+                            }
+
+                          </div>
+
+                        )}
+
                       </div>
 
-                      <p style={{ marginTop: "10px" }}>
-                        <strong>Technical:</strong> {evalItem.technical}
-                      </p>
+                    )
+                  )
 
-                      <p>
-                        <strong>Communication:</strong> {evalItem.communication}
-                      </p>
-
-                      <p>
-                        <strong>Work Ethic:</strong> {evalItem.workEthic}
-                      </p>
-
-                      <p style={{ marginTop: "10px" }}>
-                        <strong>Strengths:</strong> {evalItem.strengths}
-                      </p>
-
-                      <p>
-                        <strong>Areas for Improvement:</strong> {evalItem.improvements}
-                      </p>
-
-                      {evalItem.feedback && (
-                        <div className="feedback-box">
-                          <strong>Feedback:</strong> {evalItem.feedback}
-                        </div>
-                      )}
-
-                    </div>
-                  ))
                 )}
-              </div>
+
+              </section>
+
             </>
+
           )}
+
         </main>
+
       </div>
     </>
   );
 };
+
+
+/* =============================================================
+   SIDEBAR NAV BUTTON
+============================================================= */
+
+function NavButton({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+}) {
+  return (
+    <button
+      type="button"
+      className={`sd-nav-button ${
+        active ? "active" : ""
+      }`}
+      onClick={onClick}
+      aria-current={
+        active
+          ? "page"
+          : undefined
+      }
+    >
+
+      <Icon size={20} />
+
+      <span>
+        {label}
+      </span>
+
+    </button>
+  );
+}
+
 
 export default Feedback;
