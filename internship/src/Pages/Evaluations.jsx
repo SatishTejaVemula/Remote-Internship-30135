@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Headerfordash from "../Components/Headerfordash";
 import Loader from "../Components/Loader";
 import "../Styles/Evaluations.css";
 import toast from "react-hot-toast";
@@ -445,7 +444,6 @@ const Evaluations = () => {
 
   return (
     <>
-      <Headerfordash />
 
       <div className="admin-layout">
 
