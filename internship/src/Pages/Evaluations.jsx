@@ -36,7 +36,14 @@ const Evaluations = () => {
   const [improvements, setImprovements] = useState("");
   const [feedback, setFeedback] = useState("");
 
+  /* =========================================================
+     LOADING STATES
+  ========================================================= */
+
   const [loading, setLoading] = useState(true);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
 
   const token = localStorage.getItem("token");
@@ -101,12 +108,14 @@ const Evaluations = () => {
       setSelectedStudent("");
       setTasks([]);
       setSelectedTask("");
+      setLoadingStudents(false);
+      setLoadingTasks(false);
       return;
     }
 
     const loadStudents = async () => {
       try {
-        setLoading(true);
+        setLoadingStudents(true);
 
         const response = await fetch(
           `https://remote-internship-30135.onrender.com/api/applications/internship/${selectedInternship}`,
@@ -138,7 +147,7 @@ const Evaluations = () => {
 
         setStudents([]);
       } finally {
-        setLoading(false);
+        setLoadingStudents(false);
       }
     };
 
@@ -153,12 +162,13 @@ const Evaluations = () => {
     if (!selectedStudent) {
       setTasks([]);
       setSelectedTask("");
+      setLoadingTasks(false);
       return;
     }
 
     const loadTasks = async () => {
       try {
-        setLoading(true);
+        setLoadingTasks(true);
 
         const response = await fetch(
           `https://remote-internship-30135.onrender.com/api/tasks/student/${selectedStudent}`,
@@ -183,7 +193,7 @@ const Evaluations = () => {
 
         setTasks([]);
       } finally {
-        setLoading(false);
+        setLoadingTasks(false);
       }
     };
 
@@ -191,7 +201,7 @@ const Evaluations = () => {
   }, [selectedStudent, token]);
 
   /* =========================================================
-     LOAD EXISTING EVALUATIONS
+     LOAD EVALUATIONS
   ========================================================= */
 
   useEffect(() => {
@@ -246,21 +256,13 @@ const Evaluations = () => {
   };
 
   /* =========================================================
-     ONLY UNEVALUATED TASKS
-  ========================================================= */
-
-  const availableTasks = tasks.filter(
-    (task) => !isTaskEvaluated(task.id)
-  );
-
-  /* =========================================================
      ALL TASKS EVALUATED
   ========================================================= */
 
   const allTasksEvaluated =
     selectedStudent &&
     tasks.length > 0 &&
-    availableTasks.length === 0;
+    tasks.every((task) => isTaskEvaluated(task.id));
 
   /* =========================================================
      TASK CHANGE
@@ -271,9 +273,8 @@ const Evaluations = () => {
 
     /*
      * Extra protection.
-     * Even though evaluated tasks are removed from
-     * the dropdown, don't allow them to be selected
-     * programmatically.
+     * Evaluated tasks are disabled in the dropdown,
+     * but this prevents programmatic selection too.
      */
     if (taskId && isTaskEvaluated(taskId)) {
       toast.error("This task has already been evaluated.");
@@ -371,9 +372,7 @@ const Evaluations = () => {
       if (!response.ok) {
         if (
           response.status === 409 ||
-          data?.message
-            ?.toLowerCase()
-            ?.includes("already")
+          data?.message?.toLowerCase()?.includes("already")
         ) {
           toast.error("This task has already been evaluated.");
         } else {
@@ -387,7 +386,7 @@ const Evaluations = () => {
 
       /*
        * Add newly-created evaluation immediately.
-       * This makes the task disappear from the dropdown.
+       * This makes the task show the green tick immediately.
        */
       setEvaluations((previous) => [
         data,
@@ -402,11 +401,9 @@ const Evaluations = () => {
       setSelectedTask("");
 
       setRating(0);
-
       setTechnical("");
       setCommunication("");
       setWorkEthic("");
-
       setStrengths("");
       setImprovements("");
       setFeedback("");
@@ -555,6 +552,9 @@ const Evaluations = () => {
                     setSelectedStudent("");
                     setSelectedTask("");
 
+                    setStudents([]);
+                    setTasks([]);
+
                     setRating(0);
 
                     setTechnical("");
@@ -583,93 +583,128 @@ const Evaluations = () => {
                 </select>
 
 
-                {/* Student */}
+                {/* =================================================
+                    STUDENT
+                ================================================= */}
 
                 <label>
                   Select Student
                 </label>
 
-                <select
-                  value={selectedStudent}
-                  onChange={(e) => {
-                    setSelectedStudent(
-                      e.target.value
-                    );
+                <div className="evaluation-select-wrapper">
 
-                    setSelectedTask("");
+                  {loadingStudents ? (
+                    <div className="dropdown-loader">
+                      <Loader />
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedStudent}
+                      onChange={(e) => {
+                        setSelectedStudent(
+                          e.target.value
+                        );
 
-                    setRating(0);
+                        setSelectedTask("");
+                        setTasks([]);
 
-                    setTechnical("");
-                    setCommunication("");
-                    setWorkEthic("");
+                        setRating(0);
 
-                    setStrengths("");
-                    setImprovements("");
-                    setFeedback("");
-                  }}
-                  disabled={!selectedInternship}
-                >
-                  <option value="">
-                    Select student
-                  </option>
+                        setTechnical("");
+                        setCommunication("");
+                        setWorkEthic("");
 
-                  {students.map((student) => (
-                    <option
-                      key={
-                        student.studentId ||
-                        student.id
-                      }
-                      value={
-                        student.studentId ||
-                        student.id
-                      }
+                        setStrengths("");
+                        setImprovements("");
+                        setFeedback("");
+                      }}
+                      disabled={!selectedInternship}
                     >
-                      {student.fullName ||
-                        student.studentName ||
-                        student.name ||
-                        "Student"}
-                    </option>
-                  ))}
-                </select>
+                      <option value="">
+                        Select student
+                      </option>
+
+                      {students.map((student) => (
+                        <option
+                          key={
+                            student.studentId ||
+                            student.id
+                          }
+                          value={
+                            student.studentId ||
+                            student.id
+                          }
+                        >
+                          {student.fullName ||
+                            student.studentName ||
+                            student.name ||
+                            "Student"}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                </div>
 
 
-                {/* Task */}
+                {/* =================================================
+                    TASK
+                ================================================= */}
 
                 <label>
                   Select Task
                 </label>
 
-                <select
-                  value={selectedTask}
-                  onChange={handleTaskChange}
-                  disabled={
-                    !selectedStudent ||
-                    availableTasks.length === 0
-                  }
-                >
-                  <option value="">
-                    {allTasksEvaluated
-                      ? "All tasks already evaluated"
-                      : "Select task"}
-                  </option>
+                <div className="evaluation-select-wrapper">
 
-                  {availableTasks.map(
-                    (task) => (
-                      <option
-                        key={task.id}
-                        value={task.id}
-                      >
-                        {task.title ||
-                          task.taskTitle ||
-                          `Task ${task.id}`}
+                  {loadingTasks ? (
+                    <div className="dropdown-loader">
+                      <Loader />
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedTask}
+                      onChange={handleTaskChange}
+                      disabled={
+                        !selectedStudent ||
+                        tasks.length === 0
+                      }
+                    >
+                      <option value="">
+                        {allTasksEvaluated
+                          ? "All tasks already evaluated"
+                          : "Select task"}
                       </option>
-                    )
+
+                      {tasks.map((task) => {
+                        const evaluated =
+                          isTaskEvaluated(task.id);
+
+                        return (
+                          <option
+                            key={task.id}
+                            value={task.id}
+                            disabled={evaluated}
+                          >
+                            {evaluated ? "✓ " : ""}
+                            {task.title ||
+                              task.taskTitle ||
+                              `Task ${task.id}`}
+                            {evaluated
+                              ? " — Evaluated"
+                              : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
                   )}
-                </select>
+
+                </div>
 
 
-                {/* All evaluated message */}
+                {/* =================================================
+                    ALL TASKS EVALUATED
+                ================================================= */}
 
                 {allTasksEvaluated && (
                   <div className="evaluation-complete">
@@ -679,9 +714,12 @@ const Evaluations = () => {
                 )}
 
 
-                {/* No tasks */}
+                {/* =================================================
+                    NO TASKS
+                ================================================= */}
 
                 {selectedStudent &&
+                  !loadingTasks &&
                   tasks.length === 0 && (
                     <div className="evaluation-complete">
                       No tasks are available for this
