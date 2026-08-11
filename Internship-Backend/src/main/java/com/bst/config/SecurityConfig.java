@@ -24,77 +24,18 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
-    @Bean
-    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
-        return http
-                .csrf(csrf -> csrf.disable())
-
-                .cors(cors -> cors
-                        .configurationSource(corsConfigurationSource())
-                )
-
-                .authorizeHttpRequests(auth -> auth
-
-                        .requestMatchers(
-                                "/api/auth/**",
-                                "/emailotp/**",
-                                "/api/applications/**",
-                                "/api/tasks/**",
-                                "/api/employers/**",
-                                "/api/evaluations/**",
-
-                                // Student profile images
-                                "/api/students/image/**",
-
-                                // Employer profile images
-                                "/api/employers/image/**",
-
-                                // Uploaded files
-                                "/uploads/**",
-
-                                // Swagger
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-
-                                // Dev APIs
-                                "/api/dev/**"
-                        )
-                        .permitAll()
-
-
-                        // =========================================
-                        // ADMIN ONLY
-                        // =========================================
-                        .requestMatchers("/api/internships/create/**")
-                        .hasRole("ADMIN")
-
-                        // =========================================
-                        // PUBLIC INTERNSHIP ENDPOINTS
-                        // =========================================
-                        .requestMatchers("/api/internships/**")
-                        .permitAll()
-
-                        // =========================================
-                        // PUBLIC STUDENT ENDPOINTS
-                        // =========================================
-                        .requestMatchers("/api/students/**")
-                        .permitAll()
-
-                        // =========================================
-                        // EVERYTHING ELSE
-                        // =========================================
-                        .anyRequest()
-                        .authenticated()
-                )
-
-                .addFilterBefore(
-                        jwtFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                )
-
-                .build();
-    }
+	@Bean
+	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+		return http.csrf(csrf -> csrf.disable()).cors(cors -> cors.configurationSource(corsConfigurationSource()))
+				.authorizeHttpRequests(auth -> auth
+						.requestMatchers("/api/auth/**", "/emailotp/**", "/api/applications/**", "/api/tasks/**",
+								"/api/employers/**", "/api/evaluations/**", "/api/students/image/**",
+								"/api/employers/image/**", "/uploads/**", "/swagger-ui/**", "/v3/api-docs/**","/api/dev/**")
+						.permitAll().requestMatchers("/api/internships/create/**").hasRole("ADMIN")
+						.requestMatchers("/api/internships/**").permitAll().requestMatchers("/api/students/**")
+						.permitAll().anyRequest().authenticated())
+				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class).build();
+	}
 
     // =========================================
     // PASSWORD ENCODER

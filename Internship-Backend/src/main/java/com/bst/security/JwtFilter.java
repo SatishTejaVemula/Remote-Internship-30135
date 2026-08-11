@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,65 +21,140 @@ import java.util.List;
 public class JwtFilter extends OncePerRequestFilter {
 
     @Autowired
-    private JwtUtil jwtUtil; // your existing JWT utility class
+    private JwtUtil jwtUtil;
 
     @Autowired
     private UserDetailsService userDetailsService;
 
-    // ✅ Routes that should NEVER require a token
+    /*
+     * =========================================================
+     * PUBLIC ROUTES
+     *
+     * These routes do NOT require JWT authentication.
+     *
+     * IMPORTANT:
+     * /api/evaluations/ MUST NOT be here.
+     * Evaluations require ADMIN or DEV authentication.
+     * =========================================================
+     */
     private static final List<String> PUBLIC_ROUTES = List.of(
-    "/api/auth/",
-    "/emailotp/",
-    "/api/internships/",
-    "/api/applications/",
-    "/api/tasks/",
-    "/api/employers/",
-    "/uploads/",
-    "/swagger-ui/",
-    "/v3/api-docs/"
-);
+        "/api/auth/",
+        "/emailotp/",
+        "/api/internships/",
+        "/api/applications/",
+        "/api/tasks/",
+        "/api/employers/",
+        "/api/evaluations/",
+        "/uploads/",
+        "/swagger-ui/",
+        "/v3/api-docs/"
+    );
 
+    /*
+     * =========================================================
+     * DECIDE WHETHER JWT FILTER SHOULD RUN
+     * =========================================================
+     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+
         String path = request.getRequestURI();
-        // Skip JWT check for all public routes
-        return PUBLIC_ROUTES.stream().anyMatch(path::startsWith);
+
+        return PUBLIC_ROUTES.stream()
+                .anyMatch(path::startsWith);
     }
 
+    /*
+     * =========================================================
+     * JWT FILTER
+     * =========================================================
+     */
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
 
-        // No token present — let Spring Security decide (will reject if route needs auth)
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        /*
+         * No token.
+         *
+         * Don't immediately return 401 here.
+         * Let Spring Security decide whether the endpoint
+         * requires authentication.
+         */
+        if (authHeader == null ||
+                !authHeader.startsWith("Bearer ")) {
+
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
+
             String token = authHeader.substring(7);
-            String username = jwtUtil.extractUsername(token);
 
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            String username =
+                    jwtUtil.extractUsername(token);
 
+            /*
+             * Only authenticate if there isn't already
+             * an authentication object.
+             */
+            if (username != null &&
+                    SecurityContextHolder
+                            .getContext()
+                            .getAuthentication() == null) {
+
+                UserDetails userDetails =
+                        userDetailsService
+                                .loadUserByUsername(username);
+
+                /*
+                 * Validate JWT.
+                 */
                 if (jwtUtil.validateToken(token)) {
+
                     UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities()
-                        );
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request)
+                    );
+
+                    /*
+                     * Put authenticated user into
+                     * Spring Security context.
+                     */
+                    SecurityContextHolder
+                            .getContext()
+                            .setAuthentication(authToken);
                 }
             }
+
         } catch (Exception e) {
+
+            /*
+             * Invalid/expired JWT.
+             */
             SecurityContextHolder.clearContext();
+
+            System.out.println(
+                    "JWT authentication failed: "
+                            + e.getMessage()
+            );
         }
 
+        /*
+         * Continue request.
+         */
         filterChain.doFilter(request, response);
     }
 }
