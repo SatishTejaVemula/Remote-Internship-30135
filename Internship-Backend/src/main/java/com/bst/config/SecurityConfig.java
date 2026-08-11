@@ -28,41 +28,18 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
-    // =========================================
-    // SECURITY FILTER CHAIN
-    // =========================================
-
     @Bean
     SecurityFilterChain filterChain(
             HttpSecurity http) throws Exception {
 
         return http
-
-                // =========================================
-                // CSRF
-                // =========================================
-
                 .csrf(csrf -> csrf.disable())
-
-                // =========================================
-                // CORS
-                // =========================================
-
                 .cors(cors ->
                         cors.configurationSource(
                                 corsConfigurationSource()
                         )
                 )
-
-                // =========================================
-                // AUTHORIZATION
-                // =========================================
-
                 .authorizeHttpRequests(auth -> auth
-
-                        // =====================================
-                        // PUBLIC ROUTES
-                        // =====================================
 
                         .requestMatchers(
                                 "/api/auth/**",
@@ -78,22 +55,10 @@ public class SecurityConfig {
                         )
                         .permitAll()
 
-                        // =====================================
-                        // STUDENT EVALUATIONS
-                        //
-                        // Students can see their feedback.
-                        // =====================================
-
                         .requestMatchers(
                                 "/api/evaluations/student/**"
                         )
                         .hasRole("STUDENT")
-
-                        // =====================================
-                        // EMPLOYER EVALUATIONS
-                        //
-                        // Employers are ROLE_ADMIN.
-                        // =====================================
 
                         .requestMatchers(
                                 "/api/evaluations/employer/**",
@@ -103,87 +68,45 @@ public class SecurityConfig {
                         )
                         .hasRole("ADMIN")
 
-                        // =====================================
-                        // GENERAL EVALUATION ROUTES
-                        //
-                        // DELETE /api/evaluations/{id}
-                        // etc.
-                        // =====================================
-
                         .requestMatchers(
                                 "/api/evaluations/**"
                         )
                         .hasRole("ADMIN")
-
-                        // =====================================
-                        // DEV ROUTES
-                        // =====================================
 
                         .requestMatchers(
                                 "/api/dev/**"
                         )
                         .hasRole("DEV")
 
-                        // =====================================
-                        // INTERNSHIP CREATION
-                        // =====================================
-
                         .requestMatchers(
                                 "/api/internships/create/**"
                         )
                         .hasRole("ADMIN")
-
-                        // =====================================
-                        // OTHER INTERNSHIP ROUTES
-                        // =====================================
 
                         .requestMatchers(
                                 "/api/internships/**"
                         )
                         .permitAll()
 
-                        // =====================================
-                        // STUDENT ROUTES
-                        // =====================================
-
                         .requestMatchers(
                                 "/api/students/**"
                         )
                         .permitAll()
 
-                        // =====================================
-                        // EVERYTHING ELSE
-                        // =====================================
-
                         .anyRequest()
                         .authenticated()
                 )
-
-                // =========================================
-                // JWT FILTER
-                // =========================================
-
                 .addFilterBefore(
                         jwtFilter,
                         UsernamePasswordAuthenticationFilter.class
                 )
-
                 .build();
     }
 
-    // =========================================
-    // PASSWORD ENCODER
-    // =========================================
-
     @Bean
     public PasswordEncoder passwordEncoder() {
-
         return new BCryptPasswordEncoder();
     }
-
-    // =========================================
-    // CORS
-    // =========================================
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
