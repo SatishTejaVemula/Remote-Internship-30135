@@ -18,6 +18,13 @@ import {
 import HeaderforStudent from "../Components/HeaderforStudent";
 import "../Styles/StudentDashboard.css";
 
+const API_BASE =
+  "https://remote-internship-30135.onrender.com";
+
+const TOKEN_KEY = "token";
+const STUDENT_PROFILE_KEY = "studentProfile";
+const DASHBOARD_CACHE_KEY = "studentDashboardData";
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
 
@@ -26,15 +33,179 @@ export default function StudentDashboard() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  /* =========================================================
-     LOAD DASHBOARD DATA
-  ========================================================= */
+  const logout = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(STUDENT_PROFILE_KEY);
+    localStorage.removeItem(DASHBOARD_CACHE_KEY);
+
+    // Remove these only if your application uses them
+    localStorage.removeItem("user");
+    localStorage.removeItem("student");
+
+    navigate("/login", { replace: true });
+  };
+
+  const getTokenExpiration = () => {
+    const token = localStorage.getItem(TOKEN_KEY);
+
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const parts = token.split(".");
+
+      if (parts.length !== 3) {
+        return null;
+      }
+
+      const payload = JSON.parse(
+        atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
+      );
+
+      if (!payload.exp) {
+        return null;
+      }
+
+      // JWT exp is in seconds
+      return payload.exp * 1000;
+    } catch (error) {
+      console.error("Invalid JWT:", error);
+      return null;
+    }
+  };
+
+  const checkTokenExpiration = () => {
+    const token = localStorage.getItem(TOKEN_KEY);
+
+    if (!token) {
+      logout();
+      return false;
+    }
+
+    const expirationTime = getTokenExpiration();
+
+    if (!expirationTime) {
+      return true;
+    }
+
+    if (Date.now() >= expirationTime) {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+      return false;
+    }
+
+    return true;
+  };
+
+  const setupTokenExpirationTimer = () => {
+    const expirationTime = getTokenExpiration();
+
+    if (!expirationTime) {
+      return null;
+    }
+
+    const remainingTime = expirationTime - Date.now();
+
+    if (remainingTime <= 0) {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+      return null;
+    }
+
+    const timer = setTimeout(() => {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+    }, remainingTime);
+
+    return timer;
+  };
+
+  const loadCachedDashboard = () => {
+    try {
+      const cached = localStorage.getItem(
+        DASHBOARD_CACHE_KEY
+      );
+
+      if (!cached) {
+        return false;
+      }
+
+      const data = JSON.parse(cached);
+
+      if (!data) {
+        return false;
+      }
+
+      const storedStudent = localStorage.getItem(
+        STUDENT_PROFILE_KEY
+      );
+
+      const loggedStudent = storedStudent
+        ? JSON.parse(storedStudent)
+        : {};
+
+      if (
+        data.studentId &&
+        loggedStudent.id &&
+        Number(data.studentId) !== Number(loggedStudent.id)
+      ) {
+        localStorage.removeItem(DASHBOARD_CACHE_KEY);
+
+        return false;
+      }
+
+      setStudent(loggedStudent);
+
+      setApprovedInternships(
+        Array.isArray(data.approvedInternships)
+          ? data.approvedInternships
+          : []
+      );
+
+      setTasks(
+        Array.isArray(data.tasks)
+          ? data.tasks
+          : []
+      );
+
+      return true;
+    } catch (error) {
+      console.error(
+        "Failed to load cached dashboard:",
+        error
+      );
+
+      localStorage.removeItem(DASHBOARD_CACHE_KEY);
+
+      return false;
+    }
+  };
 
   const loadDashboardData = async () => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (!checkTokenExpiration()) {
+      return;
+    }
 
-    const stored = localStorage.getItem("studentProfile");
-    const loggedStudent = stored ? JSON.parse(stored) : {};
+    const stored = localStorage.getItem(
+      STUDENT_PROFILE_KEY
+    );
+
+    const loggedStudent = stored
+      ? JSON.parse(stored)
+      : {};
 
     setStudent(loggedStudent);
 
@@ -46,43 +217,93 @@ export default function StudentDashboard() {
     try {
       setLoading(true);
 
-      /* -------------------------------------------------------
-         Applications
-      ------------------------------------------------------- */
+      const token = localStorage.getItem(TOKEN_KEY);
 
       const appRes = await fetch(
-        `https://remote-internship-30135.onrender.com/api/applications/student/${loggedStudent.id}`
+        `${API_BASE}/api/applications/student/${loggedStudent.id}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
+      if (
+        appRes.status === 401 ||
+        appRes.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+        return;
+      }
 
       if (!appRes.ok) {
-        throw new Error("Failed to load applications");
+        throw new Error(
+          "Failed to load applications"
+        );
       }
 
       const applications = await appRes.json();
 
       const approved = applications.filter(
-        (app) => app.status?.toLowerCase() === "approved"
+        (app) =>
+          app.status?.toLowerCase() === "approved"
       );
-
-      setApprovedInternships(approved);
-
-      /* -------------------------------------------------------
-         Tasks
-      ------------------------------------------------------- */
 
       const taskRes = await fetch(
-        `https://remote-internship-30135.onrender.com/api/tasks/student/${loggedStudent.id}`
+        `${API_BASE}/api/tasks/student/${loggedStudent.id}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
       );
 
+      if (
+        taskRes.status === 401 ||
+        taskRes.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+        return;
+      }
+
       if (!taskRes.ok) {
-        throw new Error("Failed to load tasks");
+        throw new Error(
+          "Failed to load tasks"
+        );
       }
 
       const taskData = await taskRes.json();
 
+      const dashboardData = {
+        studentId: loggedStudent.id,
+        approvedInternships: approved,
+        tasks: taskData,
+        cachedAt: Date.now(),
+      };
+
+      localStorage.setItem(
+        DASHBOARD_CACHE_KEY,
+        JSON.stringify(dashboardData)
+      );
+
+      setApprovedInternships(approved);
       setTasks(taskData);
     } catch (error) {
-      console.error("Dashboard error:", error);
+      console.error(
+        "Dashboard error:",
+        error
+      );
 
       toast.error(
         "Couldn't load your dashboard. Try refreshing."
@@ -92,25 +313,51 @@ export default function StudentDashboard() {
     }
   };
 
-
-  /* =========================================================
-     INITIAL LOAD
-  ========================================================= */
-
   useEffect(() => {
-    loadDashboardData();
+    if (!checkTokenExpiration()) {
+      return;
+    }
 
-    window.addEventListener("focus", loadDashboardData);
+    const timer =
+      setupTokenExpirationTimer();
+    const hasCache =
+      loadCachedDashboard();
+
+    if (hasCache) {
+      setLoading(false);
+    } else {
+      loadDashboardData();
+    }
 
     return () => {
-      window.removeEventListener("focus", loadDashboardData);
+      if (timer) {
+        clearTimeout(timer);
+      }
     };
   }, []);
 
 
-  /* =========================================================
-     TASK STATISTICS
-  ========================================================= */
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === "visible"
+      ) {
+        checkTokenExpiration();
+      }
+    };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, []);
 
   const completed = tasks.filter((task) =>
     ["completed", "submitted"].includes(
@@ -118,31 +365,26 @@ export default function StudentDashboard() {
     )
   ).length;
 
-
   const inProgress = tasks.filter(
     (task) =>
-      task.status?.toLowerCase() === "in progress"
+      task.status?.toLowerCase() ===
+      "in progress"
   ).length;
-
 
   const pending = tasks.filter(
     (task) =>
-      task.status?.toLowerCase() === "pending"
+      task.status?.toLowerCase() ===
+      "pending"
   ).length;
 
-
   const totalTasks = tasks.length;
-
 
   const progress =
     totalTasks === 0
       ? 0
-      : Math.round((completed / totalTasks) * 100);
-
-
-  /* =========================================================
-     STAT CARDS
-  ========================================================= */
+      : Math.round(
+          (completed / totalTasks) * 100
+        );
 
   const stats = [
     {
@@ -171,22 +413,11 @@ export default function StudentDashboard() {
     },
   ];
 
-
-  /* =========================================================
-     RENDER
-  ========================================================= */
-
   return (
     <>
-
       <div className="sd-layout">
 
-        {/* ===================================================
-            SIDEBAR
-        =================================================== */}
-
         <aside className="sd-sidebar">
-
           <nav className="sd-nav">
 
             <NavButton
@@ -194,63 +425,64 @@ export default function StudentDashboard() {
               icon={LayoutDashboard}
               label="Dashboard"
               onClick={() =>
-                navigate("/student-dashboard")
+                navigate(
+                  "/student-dashboard"
+                )
               }
             />
-
 
             <NavButton
               icon={Search}
               label="Browse Internships"
               onClick={() =>
-                navigate("/browse-internships")
+                navigate(
+                  "/browse-internships"
+                )
               }
             />
-
 
             <NavButton
               icon={FileText}
               label="My Applications"
               onClick={() =>
-                navigate("/myapplications")
+                navigate(
+                  "/myapplications"
+                )
               }
             />
-
 
             <NavButton
               icon={ClipboardList}
               label="My Tasks"
               onClick={() =>
-                navigate("/mytasks")
+                navigate(
+                  "/mytasks"
+                )
               }
             />
-
 
             <NavButton
               icon={MessageSquare}
               label="Feedback"
               onClick={() =>
-                navigate("/feedback")
+                navigate(
+                  "/feedback"
+                )
               }
             />
-
 
             <NavButton
               icon={User}
               label="Profile"
               onClick={() =>
-                navigate("/student-profile")
+                navigate(
+                  "/student-profile"
+                )
               }
             />
 
           </nav>
-
         </aside>
-
-
-        {/* ===================================================
-            MAIN CONTENT
-        =================================================== */}
 
         <main className="sd-main">
 
@@ -259,28 +491,21 @@ export default function StudentDashboard() {
           ) : (
             <>
 
-              {/* =================================================
-                  WELCOME
-              ================================================= */}
-
               <div className="sd-header-section">
 
                 <h1>
                   Welcome back,{" "}
-                  {student.name || "Student"}!
+                  {student.name ||
+                    "Student"}
+                  !
                 </h1>
 
                 <p>
-                  Here's an overview of your internship
-                  progress.
+                  Here's an overview of your
+                  internship progress.
                 </p>
 
               </div>
-
-
-              {/* =================================================
-                  STATISTICS
-              ================================================= */}
 
               <div className="sd-stats-grid">
 
@@ -309,7 +534,6 @@ export default function StudentDashboard() {
 
                       </div>
 
-
                       <div
                         className={`sd-stat-icon ${color}`}
                       >
@@ -323,9 +547,8 @@ export default function StudentDashboard() {
 
               </div>
 
-
-
-              {approvedInternships.length === 0 ? (
+              {approvedInternships.length ===
+              0 ? (
 
                 <section className="sd-card">
 
@@ -333,19 +556,19 @@ export default function StudentDashboard() {
                     Current Internship
                   </h2>
 
-
                   <div className="sd-empty">
 
                     <h3>
                       No active internship yet
                     </h3>
 
-
                     <p>
-                      Once one of your applications
-                      is approved, it'll show up here
-                      with your start date, duration,
-                      and stipend.
+                      Once one of your
+                      applications is
+                      approved, it'll show up
+                      here with your start
+                      date, duration, and
+                      stipend.
                     </p>
 
                   </div>
@@ -366,16 +589,17 @@ export default function StudentDashboard() {
                         Current Internship
                       </h2>
 
-
                       <h3 className="sd-internship-title">
-                        {intern.internshipTitle}
+                        {
+                          intern.internshipTitle
+                        }
                       </h3>
 
-
                       <p className="sd-company">
-                        {intern.companyName}
+                        {
+                          intern.companyName
+                        }
                       </p>
-
 
                       <div className="sd-detail-grid">
 
@@ -386,12 +610,13 @@ export default function StudentDashboard() {
                           </strong>
 
                           <p>
-                            {intern.appliedDate ||
-                              "N/A"}
+                            {
+                              intern.appliedDate ||
+                              "N/A"
+                            }
                           </p>
 
                         </div>
-
 
                         <div className="sd-detail">
 
@@ -400,12 +625,13 @@ export default function StudentDashboard() {
                           </strong>
 
                           <p>
-                            {intern.duration ||
-                              "N/A"}
+                            {
+                              intern.duration ||
+                              "N/A"
+                            }
                           </p>
 
                         </div>
-
 
                         <div className="sd-detail">
 
@@ -414,8 +640,10 @@ export default function StudentDashboard() {
                           </strong>
 
                           <p>
-                            {intern.stipend ||
-                              "N/A"}
+                            {
+                              intern.stipend ||
+                              "N/A"
+                            }
                           </p>
 
                         </div>
@@ -429,13 +657,11 @@ export default function StudentDashboard() {
 
               )}
 
-
               <section className="sd-card">
 
                 <h2>
                   Progress Overview
                 </h2>
-
 
                 <div className="sd-progress">
 
@@ -449,7 +675,6 @@ export default function StudentDashboard() {
                     />
 
                   </div>
-
 
                   <p className="sd-progress-text">
 
@@ -473,7 +698,6 @@ export default function StudentDashboard() {
   );
 }
 
-
 function NavButton({
   active,
   icon: Icon,
@@ -487,24 +711,19 @@ function NavButton({
       }`}
       onClick={onClick}
       aria-current={
-        active ? "page" : undefined
+        active
+          ? "page"
+          : undefined
       }
     >
-
       <Icon size={20} />
 
       <span>
         {label}
       </span>
-
     </button>
   );
 }
-
-
-/* =============================================================
-   LOADER
-============================================================= */
 
 function Loader() {
   return (

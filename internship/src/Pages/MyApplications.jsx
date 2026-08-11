@@ -24,6 +24,18 @@ import {
   X,
 } from "lucide-react";
 
+/* =========================================================
+   API + LOCAL STORAGE KEYS
+========================================================= */
+
+const API_BASE =
+  "https://remote-internship-30135.onrender.com";
+
+const TOKEN_KEY = "token";
+const STUDENT_PROFILE_KEY = "studentProfile";
+const APPLICATIONS_CACHE_KEY =
+  "studentApplicationsData";
+
 
 const MyApplications = () => {
   const navigate = useNavigate();
@@ -32,15 +44,34 @@ const MyApplications = () => {
      STUDENT
   ========================================================= */
 
-  const student =
-    JSON.parse(localStorage.getItem("studentProfile")) || {};
+  const getStudent = () => {
+    try {
+      const storedStudent =
+        localStorage.getItem(
+          STUDENT_PROFILE_KEY
+        );
 
+      return storedStudent
+        ? JSON.parse(storedStudent)
+        : {};
+    } catch (error) {
+      console.error(
+        "Failed to read student profile:",
+        error
+      );
+
+      return {};
+    }
+  };
+
+  const student = getStudent();
 
   /* =========================================================
      STATE
   ========================================================= */
 
-  const [applications, setApplications] = useState([]);
+  const [applications, setApplications] =
+    useState([]);
 
   const [selectedApp, setSelectedApp] =
     useState(null);
@@ -56,31 +87,367 @@ const MyApplications = () => {
 
 
   /* =========================================================
-     FETCH APPLICATIONS
+     LOGOUT
   ========================================================= */
 
-  useEffect(() => {
-    if (!student?.id) {
-      setLoading(false);
-      return;
+  const logout = () => {
+    /*
+     * Remove JWT
+     */
+    localStorage.removeItem(
+      TOKEN_KEY
+    );
+
+    /*
+     * Remove student profile
+     */
+    localStorage.removeItem(
+      STUDENT_PROFILE_KEY
+    );
+
+    /*
+     * Remove cached applications
+     */
+    localStorage.removeItem(
+      APPLICATIONS_CACHE_KEY
+    );
+
+    /*
+     * Remove other possible
+     * authentication data
+     */
+    localStorage.removeItem("user");
+    localStorage.removeItem("student");
+
+    /*
+     * Redirect to login
+     */
+    navigate("/login", {
+      replace: true,
+    });
+  };
+
+
+  /* =========================================================
+     GET JWT EXPIRATION
+  ========================================================= */
+
+  const getTokenExpiration = () => {
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+    if (!token) {
+      return null;
     }
 
-    const fetchApplications = async () => {
+    try {
+      const parts =
+        token.split(".");
+
+      if (parts.length !== 3) {
+        return null;
+      }
+
+      /*
+       * Decode JWT payload
+       */
+      const payload = JSON.parse(
+        atob(
+          parts[1]
+            .replace(/-/g, "+")
+            .replace(/_/g, "/")
+        )
+      );
+
+      if (!payload.exp) {
+        return null;
+      }
+
+      /*
+       * JWT exp is seconds.
+       * JavaScript uses milliseconds.
+       */
+      return payload.exp * 1000;
+    } catch (error) {
+      console.error(
+        "Invalid JWT:",
+        error
+      );
+
+      return null;
+    }
+  };
+
+
+  /* =========================================================
+     CHECK JWT EXPIRATION
+  ========================================================= */
+
+  const checkTokenExpiration = () => {
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+    /*
+     * No token
+     */
+    if (!token) {
+      logout();
+      return false;
+    }
+
+    const expirationTime =
+      getTokenExpiration();
+
+    /*
+     * If token doesn't contain
+     * exp, allow it to continue.
+     */
+    if (!expirationTime) {
+      return true;
+    }
+
+    /*
+     * Token expired
+     */
+    if (
+      Date.now() >=
+      expirationTime
+    ) {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+
+      return false;
+    }
+
+    return true;
+  };
+
+
+  /* =========================================================
+     JWT EXPIRATION TIMER
+  ========================================================= */
+
+  const setupTokenExpirationTimer =
+    () => {
+      const expirationTime =
+        getTokenExpiration();
+
+      if (!expirationTime) {
+        return null;
+      }
+
+      const remainingTime =
+        expirationTime -
+        Date.now();
+
+      /*
+       * Already expired
+       */
+      if (remainingTime <= 0) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return null;
+      }
+
+      /*
+       * Automatically logout when
+       * JWT expires.
+       */
+      const timer =
+        setTimeout(() => {
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+          logout();
+        }, remainingTime);
+
+      return timer;
+    };
+
+
+  /* =========================================================
+     LOAD CACHED APPLICATIONS
+  ========================================================= */
+
+  const loadCachedApplications =
+    () => {
+      try {
+        const cached =
+          localStorage.getItem(
+            APPLICATIONS_CACHE_KEY
+          );
+
+        /*
+         * No cached data
+         */
+        if (!cached) {
+          return false;
+        }
+
+        const data =
+          JSON.parse(cached);
+
+        if (!data) {
+          return false;
+        }
+
+        /*
+         * Get current student
+         */
+        const currentStudent =
+          getStudent();
+
+        /*
+         * Make sure the cache belongs
+         * to the current student.
+         */
+        if (
+          data.studentId &&
+          currentStudent.id &&
+          Number(data.studentId) !==
+            Number(currentStudent.id)
+        ) {
+          localStorage.removeItem(
+            APPLICATIONS_CACHE_KEY
+          );
+
+          return false;
+        }
+
+        /*
+         * Restore applications
+         */
+        setApplications(
+          Array.isArray(
+            data.applications
+          )
+            ? data.applications
+            : []
+        );
+
+        return true;
+      } catch (error) {
+        console.error(
+          "Failed to load cached applications:",
+          error
+        );
+
+        localStorage.removeItem(
+          APPLICATIONS_CACHE_KEY
+        );
+
+        return false;
+      }
+    };
+
+
+  /* =========================================================
+     SAVE APPLICATIONS TO CACHE
+  ========================================================= */
+
+  const saveApplicationsToCache =
+    (applicationData) => {
+      try {
+        const cacheData = {
+          studentId:
+            student?.id,
+
+          applications:
+            Array.isArray(
+              applicationData
+            )
+              ? applicationData
+              : [],
+
+          cachedAt: Date.now(),
+        };
+
+        localStorage.setItem(
+          APPLICATIONS_CACHE_KEY,
+          JSON.stringify(
+            cacheData
+          )
+        );
+      } catch (error) {
+        console.error(
+          "Failed to cache applications:",
+          error
+        );
+      }
+    };
+
+
+  /* =========================================================
+     FETCH APPLICATIONS FROM API
+  ========================================================= */
+
+  const fetchApplications =
+    async () => {
+      /*
+       * Check JWT first
+       */
+      if (
+        !checkTokenExpiration()
+      ) {
+        return;
+      }
+
+      if (!student?.id) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
 
         const token =
-          localStorage.getItem("token");
+          localStorage.getItem(
+            TOKEN_KEY
+          );
 
-        const res = await fetch(
-          `https://remote-internship-30135.onrender.com/api/applications/student/${student.id}`,
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
-          }
-        );
+        const res =
+          await fetch(
+            `${API_BASE}/api/applications/student/${student.id}`,
+            {
+              method: "GET",
+
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+
+                "Content-Type":
+                  "application/json",
+              },
+            }
+          );
+
+        /*
+         * JWT expired / unauthorized
+         */
+        if (
+          res.status === 401 ||
+          res.status === 403
+        ) {
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+          logout();
+
+          return;
+        }
 
         if (!res.ok) {
           throw new Error(
@@ -88,12 +455,27 @@ const MyApplications = () => {
           );
         }
 
-        const data = await res.json();
+        const data =
+          await res.json();
 
+        const applicationData =
+          Array.isArray(data)
+            ? data
+            : [];
+
+        /*
+         * Update state
+         */
         setApplications(
-          Array.isArray(data) ? data : []
+          applicationData
         );
 
+        /*
+         * Save to localStorage
+         */
+        saveApplicationsToCache(
+          applicationData
+        );
       } catch (err) {
         console.error(
           "Applications error:",
@@ -105,14 +487,104 @@ const MyApplications = () => {
         toast.error(
           "Couldn't load your applications."
         );
-
       } finally {
         setLoading(false);
       }
     };
 
-    fetchApplications();
-  }, [student?.id]);
+
+  /* =========================================================
+     INITIAL LOAD
+
+     1. Check JWT
+     2. Setup expiration timer
+     3. Check localStorage
+     4. If cache exists -> NO API
+     5. If cache doesn't exist -> API ONCE
+  ========================================================= */
+
+  useEffect(() => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+    /*
+     * Setup automatic logout
+     */
+    const timer =
+      setupTokenExpirationTimer();
+
+    /*
+     * First try cached data
+     */
+    const hasCache =
+      loadCachedApplications();
+
+    if (hasCache) {
+      /*
+       * Cache exists.
+       *
+       * DO NOT call API.
+       */
+      setLoading(false);
+    } else {
+      /*
+       * No cache.
+       *
+       * Fetch only once.
+       */
+      fetchApplications();
+    }
+
+    /*
+     * Cleanup timer
+     */
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, []);
+
+
+  /* =========================================================
+     CHECK JWT WHEN RETURNING TO TAB
+
+     IMPORTANT:
+     Does NOT fetch applications.
+
+     It only checks whether the JWT
+     expired while the user was away.
+  ========================================================= */
+
+  useEffect(() => {
+    const handleVisibilityChange =
+      () => {
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+          checkTokenExpiration();
+        }
+      };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, []);
 
 
   /* =========================================================
@@ -126,9 +598,11 @@ const MyApplications = () => {
   const underReview =
     applications.filter(
       (app) =>
-        app.status?.toLowerCase() ===
+        app.status
+          ?.toLowerCase() ===
           "under review" ||
-        app.status?.toLowerCase() ===
+        app.status
+          ?.toLowerCase() ===
           "pending"
     ).length;
 
@@ -136,7 +610,8 @@ const MyApplications = () => {
   const approved =
     applications.filter(
       (app) =>
-        app.status?.toLowerCase() ===
+        app.status
+          ?.toLowerCase() ===
         "approved"
     ).length;
 
@@ -144,7 +619,8 @@ const MyApplications = () => {
   const rejected =
     applications.filter(
       (app) =>
-        app.status?.toLowerCase() ===
+        app.status
+          ?.toLowerCase() ===
         "rejected"
     ).length;
 
@@ -153,75 +629,138 @@ const MyApplications = () => {
      WITHDRAW
   ========================================================= */
 
-  const handleWithdraw = (id) => {
-    setWithdrawId(id);
+  const handleWithdraw =
+    (id) => {
+      setWithdrawId(id);
 
-    setShowWithdrawModal(true);
-  };
-
-
-  const confirmWithdraw = async () => {
-    if (!withdrawId) return;
-
-    try {
-      const token =
-        localStorage.getItem("token");
-
-      const res = await fetch(
-        `https://remote-internship-30135.onrender.com/api/applications/${withdrawId}`,
-        {
-          method: "DELETE",
-
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        }
+      setShowWithdrawModal(
+        true
       );
+    };
 
-      if (!res.ok) {
-        throw new Error(
+
+  /* =========================================================
+     CONFIRM WITHDRAW
+  ========================================================= */
+
+  const confirmWithdraw =
+    async () => {
+      if (!withdrawId) {
+        return;
+      }
+
+      /*
+       * Check JWT
+       */
+      if (
+        !checkTokenExpiration()
+      ) {
+        return;
+      }
+
+      try {
+        const token =
+          localStorage.getItem(
+            TOKEN_KEY
+          );
+
+        const res =
+          await fetch(
+            `${API_BASE}/api/applications/${withdrawId}`,
+            {
+              method: "DELETE",
+
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+
+                "Content-Type":
+                  "application/json",
+              },
+            }
+          );
+
+        /*
+         * JWT expired
+         */
+        if (
+          res.status === 401 ||
+          res.status === 403
+        ) {
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+          logout();
+
+          return;
+        }
+
+        if (!res.ok) {
+          throw new Error(
+            "Failed to withdraw application"
+          );
+        }
+
+        /*
+         * Remove application from state
+         */
+        const updatedApplications =
+          applications.filter(
+            (app) =>
+              app.id !==
+              withdrawId
+          );
+
+        setApplications(
+          updatedApplications
+        );
+
+        /*
+         * Update localStorage
+         *
+         * This is important because
+         * otherwise the deleted application
+         * would appear again from cache.
+         */
+        saveApplicationsToCache(
+          updatedApplications
+        );
+
+        /*
+         * Close selected application
+         * if it was the withdrawn one.
+         */
+        if (
+          selectedApp?.id ===
+          withdrawId
+        ) {
+          setSelectedApp(null);
+        }
+
+        /*
+         * Success message
+         */
+        toast.success(
+          "Application withdrawn successfully"
+        );
+      } catch (err) {
+        console.error(
+          "Withdraw error:",
+          err
+        );
+
+        toast.error(
           "Failed to withdraw application"
         );
+      } finally {
+        setShowWithdrawModal(
+          false
+        );
+
+        setWithdrawId(null);
       }
-
-
-      setApplications((prev) =>
-        prev.filter(
-          (app) =>
-            app.id !== withdrawId
-        )
-      );
-
-
-      if (
-        selectedApp?.id ===
-        withdrawId
-      ) {
-        setSelectedApp(null);
-      }
-
-
-      toast.success(
-        "Application withdrawn successfully"
-      );
-
-    } catch (err) {
-      console.error(
-        "Withdraw error:",
-        err
-      );
-
-      toast.error(
-        "Failed to withdraw application"
-      );
-
-    } finally {
-      setShowWithdrawModal(false);
-
-      setWithdrawId(null);
-    }
-  };
+    };
 
 
   /* =========================================================
@@ -230,7 +769,6 @@ const MyApplications = () => {
 
   return (
     <>
-
       <div className="sd-layout">
 
         {/* ===================================================
@@ -251,7 +789,6 @@ const MyApplications = () => {
               }
             />
 
-
             <NavButton
               icon={Search}
               label="Browse Internships"
@@ -261,7 +798,6 @@ const MyApplications = () => {
                 )
               }
             />
-
 
             <NavButton
               active
@@ -274,24 +810,25 @@ const MyApplications = () => {
               }
             />
 
-
             <NavButton
               icon={ClipboardList}
               label="My Tasks"
               onClick={() =>
-                navigate("/mytasks")
+                navigate(
+                  "/mytasks"
+                )
               }
             />
-
 
             <NavButton
               icon={MessageSquare}
               label="Feedback"
               onClick={() =>
-                navigate("/feedback")
+                navigate(
+                  "/feedback"
+                )
               }
             />
-
 
             <NavButton
               icon={User}
@@ -313,7 +850,6 @@ const MyApplications = () => {
         =================================================== */}
 
         <main className="sd-main">
-
 
           {/* =================================================
               PAGE HEADER
@@ -353,13 +889,11 @@ const MyApplications = () => {
 
             <>
 
-
               {/* =================================================
                   STATISTICS
               ================================================= */}
 
               <section className="stats-grid">
-
 
                 {/* Total */}
 
@@ -378,7 +912,9 @@ const MyApplications = () => {
                   </div>
 
                   <div className="stat-icon blue">
-                    <FileCheck size={28} />
+                    <FileCheck
+                      size={28}
+                    />
                   </div>
 
                 </div>
@@ -401,7 +937,9 @@ const MyApplications = () => {
                   </div>
 
                   <div className="stat-icon orange">
-                    <Clock size={28} />
+                    <Clock
+                      size={28}
+                    />
                   </div>
 
                 </div>
@@ -424,7 +962,9 @@ const MyApplications = () => {
                   </div>
 
                   <div className="stat-icon green">
-                    <CheckCircle size={28} />
+                    <CheckCircle
+                      size={28}
+                    />
                   </div>
 
                 </div>
@@ -447,7 +987,9 @@ const MyApplications = () => {
                   </div>
 
                   <div className="stat-icon purple">
-                    <XCircle size={28} />
+                    <XCircle
+                      size={28}
+                    />
                   </div>
 
                 </div>
@@ -459,7 +1001,8 @@ const MyApplications = () => {
                   NO APPLICATIONS
               ================================================= */}
 
-              {applications.length === 0 ? (
+              {applications.length ===
+              0 ? (
 
                 <section className="dashboard-card">
 
@@ -500,7 +1043,6 @@ const MyApplications = () => {
                         key={app.id}
                         className="application-card"
                       >
-
 
                         {/* =======================================
                             APPLICATION INFORMATION
@@ -635,7 +1177,6 @@ const MyApplications = () => {
 
                         <div className="application-actions">
 
-
                           {/* Status */}
 
                           <span
@@ -732,8 +1273,11 @@ const MyApplications = () => {
 
                     <p
                       style={{
-                        marginTop: "10px",
-                        marginBottom: "20px",
+                        marginTop:
+                          "10px",
+
+                        marginBottom:
+                          "20px",
                       }}
                     >
                       This action cannot
@@ -806,11 +1350,13 @@ const MyApplications = () => {
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
+                alignItems:
+                  "center",
                 justifyContent:
                   "space-between",
                 gap: "15px",
-                marginBottom: "18px",
+                marginBottom:
+                  "18px",
               }}
             >
 

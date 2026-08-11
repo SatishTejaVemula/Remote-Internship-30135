@@ -17,6 +17,19 @@ import {
 } from "lucide-react";
 
 
+/* =========================================================
+   API + LOCAL STORAGE
+========================================================= */
+
+const API_BASE =
+  "https://remote-internship-30135.onrender.com";
+
+const TOKEN_KEY = "token";
+
+const STUDENT_PROFILE_KEY =
+  "studentProfile";
+
+
 const StudentProfile = () => {
   const navigate = useNavigate();
 
@@ -30,13 +43,37 @@ const StudentProfile = () => {
 
 
   /* =========================================================
-     STUDENT DATA
+     GET STORED STUDENT
   ========================================================= */
 
+  const getStoredStudent = () => {
+    try {
+      const stored =
+        localStorage.getItem(
+          STUDENT_PROFILE_KEY
+        );
+
+      return stored
+        ? JSON.parse(stored)
+        : {};
+    } catch (error) {
+      console.error(
+        "Failed to read student profile:",
+        error
+      );
+
+      return {};
+    }
+  };
+
+
   const storedStudent =
-    JSON.parse(
-      localStorage.getItem("studentProfile")
-    ) || {};
+    getStoredStudent();
+
+
+  /* =========================================================
+     STUDENT DATA
+  ========================================================= */
 
   const [profile, setProfile] =
     useState(storedStudent);
@@ -70,33 +107,37 @@ const StudentProfile = () => {
      EXTRA PROFILE DATA
   ========================================================= */
 
+  const parseArray = (value) => {
+    if (!value) {
+      return [];
+    }
+
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return [];
+    }
+  };
+
+
   const [extraData, setExtraData] =
     useState({
-      phone: storedStudent?.phone || "",
+      phone:
+        storedStudent?.phone || "",
 
-      skills: (() => {
-        try {
-          return storedStudent?.skills
-            ? JSON.parse(
-              storedStudent.skills
-            )
-            : [];
-        } catch {
-          return [];
-        }
-      })(),
+      skills:
+        parseArray(
+          storedStudent?.skills
+        ),
 
-      links: (() => {
-        try {
-          return storedStudent?.links
-            ? JSON.parse(
-              storedStudent.links
-            )
-            : [];
-        } catch {
-          return [];
-        }
-      })(),
+      links:
+        parseArray(
+          storedStudent?.links
+        ),
 
       resume:
         storedStudent?.resume || "",
@@ -115,80 +156,556 @@ const StudentProfile = () => {
 
 
   /* =========================================================
-     TOKEN
+     SAVE PROFILE TO LOCAL STORAGE
   ========================================================= */
 
-  const token =
-    localStorage.getItem("token");
+  const saveProfileToCache = (
+    profileData,
+    extra = null
+  ) => {
+    try {
+      const currentExtra =
+        extra || extraData;
+
+      const cacheData = {
+        id: profileData?.id,
+
+        name:
+          profileData?.name || "",
+
+        email:
+          profileData?.email || "",
+
+        university:
+          profileData?.university || "",
+
+        stream:
+          profileData?.stream || "",
+
+        branch:
+          profileData?.branch || "",
+
+        joiningyear:
+          profileData?.joiningyear || "",
+
+        graduatedyear:
+          profileData?.graduatedyear || "",
+
+        phone:
+          currentExtra?.phone || "",
+
+        skills:
+          Array.isArray(
+            currentExtra?.skills
+          )
+            ? JSON.stringify(
+                currentExtra.skills
+              )
+            : currentExtra?.skills || "[]",
+
+        links:
+          Array.isArray(
+            currentExtra?.links
+          )
+            ? JSON.stringify(
+                currentExtra.links
+              )
+            : currentExtra?.links || "[]",
+
+        resume:
+          currentExtra?.resume || "",
+
+        image:
+          profileData?.image || "",
+      };
+
+
+      localStorage.setItem(
+        STUDENT_PROFILE_KEY,
+        JSON.stringify(
+          cacheData
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Failed to save profile cache:",
+        error
+      );
+    }
+  };
 
 
   /* =========================================================
-     LOAD PROFILE
+     LOGOUT
   ========================================================= */
 
-  useEffect(() => {
-    if (!storedStudent?.id) {
+  const logout = () => {
+    /*
+     * Remove JWT
+     */
+    localStorage.removeItem(
+      TOKEN_KEY
+    );
+
+    /*
+     * Remove student profile cache
+     */
+    localStorage.removeItem(
+      STUDENT_PROFILE_KEY
+    );
+
+    /*
+     * Remove other possible
+     * authentication data
+     */
+    localStorage.removeItem("user");
+    localStorage.removeItem("student");
+
+    /*
+     * Redirect
+     */
+    navigate("/login", {
+      replace: true,
+    });
+  };
+
+
+  /* =========================================================
+     JWT EXPIRATION
+  ========================================================= */
+
+  const getTokenExpiration = () => {
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const parts =
+        token.split(".");
+
+      if (parts.length !== 3) {
+        return null;
+      }
+
+      const payload =
+        JSON.parse(
+          atob(
+            parts[1]
+              .replace(/-/g, "+")
+              .replace(/_/g, "/")
+          )
+        );
+
+      if (!payload.exp) {
+        return null;
+      }
+
+      /*
+       * JWT exp is seconds.
+       * JS Date uses milliseconds.
+       */
+      return payload.exp * 1000;
+    } catch (error) {
+      console.error(
+        "Invalid JWT:",
+        error
+      );
+
+      return null;
+    }
+  };
+
+
+  /* =========================================================
+     CHECK JWT
+  ========================================================= */
+
+  const checkTokenExpiration = () => {
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+    /*
+     * No token
+     */
+    if (!token) {
+      logout();
+      return false;
+    }
+
+    const expirationTime =
+      getTokenExpiration();
+
+    /*
+     * JWT has no exp
+     */
+    if (!expirationTime) {
+      return true;
+    }
+
+    /*
+     * JWT expired
+     */
+    if (
+      Date.now() >=
+      expirationTime
+    ) {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+
+      return false;
+    }
+
+    return true;
+  };
+
+
+  /* =========================================================
+     JWT AUTO LOGOUT TIMER
+  ========================================================= */
+
+  const setupTokenExpirationTimer =
+    () => {
+      const expirationTime =
+        getTokenExpiration();
+
+      if (!expirationTime) {
+        return null;
+      }
+
+      const remainingTime =
+        expirationTime -
+        Date.now();
+
+      /*
+       * Already expired
+       */
+      if (remainingTime <= 0) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return null;
+      }
+
+      /*
+       * Logout exactly when JWT expires
+       */
+      const timer =
+        setTimeout(() => {
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+          logout();
+        }, remainingTime);
+
+      return timer;
+    };
+
+
+  /* =========================================================
+     UPDATE ALL PROFILE STATE
+  ========================================================= */
+
+  const updateProfileCache = (
+    updatedProfile,
+    updatedExtra
+  ) => {
+    setProfile(
+      updatedProfile
+    );
+
+    setExtraData(
+      updatedExtra
+    );
+
+    saveProfileToCache(
+      updatedProfile,
+      updatedExtra
+    );
+  };
+
+
+  /* =========================================================
+     LOAD PROFILE FROM BACKEND
+  ========================================================= */
+
+  const loadProfile = async () => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+    const currentStudent =
+      getStoredStudent();
+
+    if (!currentStudent?.id) {
       setLoading(false);
       return;
     }
 
-    const loadProfile = async () => {
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
 
-        const response = await fetch(
-          `https://remote-internship-30135.onrender.com/api/students/${storedStudent.id}`,
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+      const response =
+        await fetch(
+          `${API_BASE}/api/students/${currentStudent.id}`,
           {
+            method: "GET",
+
             headers: {
               Authorization:
                 `Bearer ${token}`,
+
+              "Content-Type":
+                "application/json",
             },
           }
         );
 
-        if (!response.ok) {
-          throw new Error(
-            "Failed to load profile"
-          );
-        }
 
-        const data =
-          await response.json();
-
-        setProfile(data);
-
-        setExtraData({
-          phone: data.phone || "",
-
-          skills: data.skills
-            ? JSON.parse(data.skills)
-            : [],
-
-          links: data.links
-            ? JSON.parse(data.links)
-            : [],
-
-          resume:
-            data.resume || "",
-        });
-
-      } catch (error) {
-        console.error(
-          "Profile loading error:",
-          error
+      /*
+       * Unauthorized
+       */
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
         );
 
-        toast.error(
+        logout();
+
+        return;
+      }
+
+
+      if (!response.ok) {
+        throw new Error(
           "Failed to load profile"
         );
+      }
 
-      } finally {
-        setLoading(false);
+
+      const data =
+        await response.json();
+
+
+      const newExtraData = {
+        phone:
+          data.phone || "",
+
+        skills:
+          parseArray(
+            data.skills
+          ),
+
+        links:
+          parseArray(
+            data.links
+          ),
+
+        resume:
+          data.resume || "",
+      };
+
+
+      /*
+       * Update React state
+       */
+      setProfile(data);
+
+      setExtraData(
+        newExtraData
+      );
+
+
+      /*
+       * IMPORTANT:
+       * Store freshly fetched profile
+       * in localStorage.
+       */
+      saveProfileToCache(
+        data,
+        newExtraData
+      );
+    } catch (error) {
+      console.error(
+        "Profile loading error:",
+        error
+      );
+
+      toast.error(
+        "Failed to load profile"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  /* =========================================================
+     INITIAL LOAD
+
+     FIRST:
+       JWT check
+
+     SECOND:
+       Check localStorage
+
+     THIRD:
+       If cached:
+          use cache
+          NO API
+
+     FOURTH:
+       If not cached:
+          GET API ONCE
+  ========================================================= */
+
+  useEffect(() => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
+    /*
+     * Setup automatic logout
+     */
+    const timer =
+      setupTokenExpirationTimer();
+
+
+    /*
+     * Check cached profile
+     */
+    const cachedStudent =
+      getStoredStudent();
+
+
+    if (
+      cachedStudent?.id
+    ) {
+      /*
+       * Cached profile exists.
+       *
+       * Restore it.
+       */
+      const cachedExtra = {
+        phone:
+          cachedStudent.phone ||
+          "",
+
+        skills:
+          parseArray(
+            cachedStudent.skills
+          ),
+
+        links:
+          parseArray(
+            cachedStudent.links
+          ),
+
+        resume:
+          cachedStudent.resume ||
+          "",
+      };
+
+
+      setProfile(
+        cachedStudent
+      );
+
+      setExtraData(
+        cachedExtra
+      );
+
+
+      /*
+       * IMPORTANT:
+       * Do NOT fetch.
+       */
+      setLoading(false);
+    } else {
+      /*
+       * No cache.
+       *
+       * Fetch only once.
+       */
+      loadProfile();
+    }
+
+
+    /*
+     * Cleanup
+     */
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
       }
     };
+  }, []);
 
-    loadProfile();
-  }, [storedStudent?.id]);
+
+  /* =========================================================
+     CHECK JWT WHEN RETURNING TO TAB
+
+     IMPORTANT:
+     DOES NOT FETCH PROFILE.
+  ========================================================= */
+
+  useEffect(() => {
+    const handleVisibilityChange =
+      () => {
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+          checkTokenExpiration();
+        }
+      };
+
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, []);
 
 
   /* =========================================================
@@ -203,11 +720,13 @@ const StudentProfile = () => {
     extraData.resume,
   ];
 
+
   const completion =
     Math.round(
-      (fields.filter(Boolean).length /
+      (fields.filter(Boolean)
+        .length /
         fields.length) *
-      100
+        100
     );
 
 
@@ -218,6 +737,7 @@ const StudentProfile = () => {
   const handleChange = (e) => {
     setProfile({
       ...profile,
+
       [e.target.name]:
         e.target.value,
     });
@@ -229,14 +749,28 @@ const StudentProfile = () => {
   ========================================================= */
 
   const handleSave = async () => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
     const updated = {
-      name: profile.name,
+      name:
+        profile.name,
+
       university:
         profile.university,
 
-      stream: profile.stream,
+      stream:
+        profile.stream,
 
-      branch: profile.branch,
+      branch:
+        profile.branch,
 
       joiningyear:
         profile.joiningyear,
@@ -244,7 +778,8 @@ const StudentProfile = () => {
       graduatedyear:
         profile.graduatedyear,
 
-      phone: extraData.phone,
+      phone:
+        extraData.phone,
 
       skills:
         JSON.stringify(
@@ -265,14 +800,29 @@ const StudentProfile = () => {
 
 
     try {
-      setProfile((prev) => ({
-        ...prev,
+      /*
+       * Optimistic state update
+       */
+      const optimisticProfile = {
+        ...profile,
         ...updated,
-      }));
+      };
+
+
+      setProfile(
+        optimisticProfile
+      );
+
+
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
 
       const response =
         await fetch(
-          `https://remote-internship-30135.onrender.com/api/students/${profile.id}`,
+          `${API_BASE}/api/students/${profile.id}`,
           {
             method: "PUT",
 
@@ -285,9 +835,28 @@ const StudentProfile = () => {
             },
 
             body:
-              JSON.stringify(updated),
+              JSON.stringify(
+                updated
+              ),
           }
         );
+
+
+      /*
+       * JWT expired
+       */
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return;
+      }
 
 
       if (!response.ok) {
@@ -301,51 +870,55 @@ const StudentProfile = () => {
         await response.json();
 
 
-      localStorage.setItem(
-        "studentProfile",
-        JSON.stringify({
-          id: data.id,
+      const newExtraData = {
+        phone:
+          data.phone || "",
 
-          name: data.name,
+        skills:
+          parseArray(
+            data.skills
+          ),
 
-          email: data.email,
+        links:
+          parseArray(
+            data.links
+          ),
 
-          university:
-            data.university,
+        resume:
+          data.resume || "",
+      };
 
-          stream: data.stream,
 
-          branch: data.branch,
+      /*
+       * Update state
+       */
+      setProfile(data);
 
-          joiningyear:
-            data.joiningyear,
-
-          graduatedyear:
-            data.graduatedyear,
-
-          phone: data.phone,
-
-          skills: data.skills,
-
-          links: data.links,
-
-          resume: data.resume,
-
-          image: data.image,
-        })
+      setExtraData(
+        newExtraData
       );
 
 
-      setProfile(data);
+      /*
+       * IMPORTANT:
+       * Update cached profile.
+       */
+      saveProfileToCache(
+        data,
+        newExtraData
+      );
+
 
       setEditMode(false);
+
 
       toast.success(
         "Profile updated successfully"
       );
-
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       toast.error(
         "Failed to update profile"
@@ -358,100 +931,162 @@ const StudentProfile = () => {
      IMAGE UPLOAD
   ========================================================= */
 
-  const handleImageUpload = async (e) => {
-    const file =
-      e.target.files?.[0];
-
-    if (!file) return;
-
-
-    const maxSize =
-      2 * 1024 * 1024;
-
-
-    if (file.size > maxSize) {
-      toast(
-        "Image size should be less than 2MB",
-        {
-          icon: "⚠️",
-        }
-      );
-
-      return;
-    }
-
-
-    if (
-      !file.type.startsWith(
-        "image/"
-      )
-    ) {
-      toast(
-        "Only image files allowed",
-        {
-          icon: "⚠️",
-        }
-      );
-
-      return;
-    }
-
-
-    try {
-      const formData =
-        new FormData();
-
-      formData.append(
-        "file",
-        file
-      );
-
-
-      const response =
-        await fetch(
-          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/uploadImage`,
-          {
-            method: "POST",
-
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
-
-            body: formData,
-          }
-        );
-
-
-      if (!response.ok) {
-        throw new Error(
-          "Image upload failed"
-        );
+  const handleImageUpload =
+    async (e) => {
+      /*
+       * Check JWT
+       */
+      if (
+        !checkTokenExpiration()
+      ) {
+        return;
       }
 
 
-      const fileName =
-        await response.text();
+      const file =
+        e.target.files?.[0];
 
 
-      setProfile({
-        ...profile,
-        image: fileName,
-      });
+      if (!file) {
+        return;
+      }
 
 
-      toast.success(
-        "Profile photo updated successfully"
-      );
+      const maxSize =
+        2 * 1024 * 1024;
 
-    } catch (error) {
-      console.error(error);
 
-      toast.error(
-        "Failed to upload image"
-      );
-    }
-  };
+      if (
+        file.size >
+        maxSize
+      ) {
+        toast(
+          "Image size should be less than 2MB",
+          {
+            icon: "⚠️",
+          }
+        );
+
+        return;
+      }
+
+
+      if (
+        !file.type.startsWith(
+          "image/"
+        )
+      ) {
+        toast(
+          "Only image files allowed",
+          {
+            icon: "⚠️",
+          }
+        );
+
+        return;
+      }
+
+
+      try {
+        const formData =
+          new FormData();
+
+
+        formData.append(
+          "file",
+          file
+        );
+
+
+        const token =
+          localStorage.getItem(
+            TOKEN_KEY
+          );
+
+
+        const response =
+          await fetch(
+            `${API_BASE}/api/students/${profile.id}/uploadImage`,
+            {
+              method: "POST",
+
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+              },
+
+              body:
+                formData,
+            }
+          );
+
+
+        /*
+         * JWT expired
+         */
+        if (
+          response.status === 401 ||
+          response.status === 403
+        ) {
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+          logout();
+
+          return;
+        }
+
+
+        if (!response.ok) {
+          throw new Error(
+            "Image upload failed"
+          );
+        }
+
+
+        const fileName =
+          await response.text();
+
+
+        const updatedProfile = {
+          ...profile,
+
+          image:
+            fileName,
+        };
+
+
+        /*
+         * Update state
+         */
+        setProfile(
+          updatedProfile
+        );
+
+
+        /*
+         * Update cache
+         */
+        saveProfileToCache(
+          updatedProfile,
+          extraData
+        );
+
+
+        toast.success(
+          "Profile photo updated successfully"
+        );
+      } catch (error) {
+        console.error(
+          error
+        );
+
+        toast.error(
+          "Failed to upload image"
+        );
+      }
+    };
 
 
   /* =========================================================
@@ -459,10 +1094,26 @@ const StudentProfile = () => {
   ========================================================= */
 
   const removeImage = async () => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
     try {
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+
       const response =
         await fetch(
-          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/deleteImage`,
+          `${API_BASE}/api/students/${profile.id}/deleteImage`,
           {
             method: "DELETE",
 
@@ -474,6 +1125,23 @@ const StudentProfile = () => {
         );
 
 
+      /*
+       * JWT expired
+       */
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return;
+      }
+
+
       if (!response.ok) {
         throw new Error(
           "Failed to remove photo"
@@ -481,18 +1149,34 @@ const StudentProfile = () => {
       }
 
 
-      setProfile({
+      const updatedProfile = {
         ...profile,
+
         image: "",
-      });
+      };
+
+
+      setProfile(
+        updatedProfile
+      );
+
+
+      /*
+       * Update cache
+       */
+      saveProfileToCache(
+        updatedProfile,
+        extraData
+      );
 
 
       toast.success(
         "Profile photo removed"
       );
-
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       toast.error(
         "Failed to remove photo"
@@ -506,6 +1190,16 @@ const StudentProfile = () => {
   ========================================================= */
 
   const uploadResume = async () => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
     if (!resumeFile) {
       toast.error(
         "Please select a resume"
@@ -519,15 +1213,22 @@ const StudentProfile = () => {
       const formData =
         new FormData();
 
+
       formData.append(
         "file",
         resumeFile
       );
 
 
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+
       const response =
         await fetch(
-          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/uploadResume`,
+          `${API_BASE}/api/students/${profile.id}/uploadResume`,
           {
             method: "POST",
 
@@ -536,9 +1237,27 @@ const StudentProfile = () => {
                 `Bearer ${token}`,
             },
 
-            body: formData,
+            body:
+              formData,
           }
         );
+
+
+      /*
+       * JWT expired
+       */
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return;
+      }
 
 
       if (!response.ok) {
@@ -552,10 +1271,26 @@ const StudentProfile = () => {
         await response.text();
 
 
-      setExtraData({
+      const updatedExtraData = {
         ...extraData,
-        resume: fileName,
-      });
+
+        resume:
+          fileName,
+      };
+
+
+      setExtraData(
+        updatedExtraData
+      );
+
+
+      /*
+       * Update cache
+       */
+      saveProfileToCache(
+        profile,
+        updatedExtraData
+      );
 
 
       setResumeFile(null);
@@ -564,9 +1299,10 @@ const StudentProfile = () => {
       toast.success(
         "Resume uploaded successfully"
       );
-
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       toast.error(
         "Failed to upload resume"
@@ -580,17 +1316,52 @@ const StudentProfile = () => {
   ========================================================= */
 
   const viewResume = async () => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
     try {
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+
       const response =
         await fetch(
-          `https://remote-internship-30135.onrender.com/api/students/resume/${extraData.resume}`,
+          `${API_BASE}/api/students/resume/${extraData.resume}`,
           {
+            method: "GET",
+
             headers: {
               Authorization:
                 `Bearer ${token}`,
             },
           }
         );
+
+
+      /*
+       * JWT expired
+       */
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return;
+      }
 
 
       if (!response.ok) {
@@ -605,16 +1376,19 @@ const StudentProfile = () => {
 
 
       const url =
-        URL.createObjectURL(blob);
+        URL.createObjectURL(
+          blob
+        );
 
 
       window.open(
         url,
         "_blank"
       );
-
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       toast.error(
         "Unable to open resume"
@@ -628,10 +1402,26 @@ const StudentProfile = () => {
   ========================================================= */
 
   const deleteResume = async () => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
     try {
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+
       const response =
         await fetch(
-          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/deleteResume`,
+          `${API_BASE}/api/students/${profile.id}/deleteResume`,
           {
             method: "DELETE",
 
@@ -643,6 +1433,23 @@ const StudentProfile = () => {
         );
 
 
+      /*
+       * JWT expired
+       */
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return;
+      }
+
+
       if (!response.ok) {
         throw new Error(
           "Failed to delete resume"
@@ -650,18 +1457,34 @@ const StudentProfile = () => {
       }
 
 
-      setExtraData({
+      const updatedExtraData = {
         ...extraData,
+
         resume: "",
-      });
+      };
+
+
+      setExtraData(
+        updatedExtraData
+      );
+
+
+      /*
+       * Update cache
+       */
+      saveProfileToCache(
+        profile,
+        updatedExtraData
+      );
 
 
       toast.success(
         "Resume deleted successfully"
       );
-
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       toast.error(
         "Failed to delete resume"
@@ -675,16 +1498,35 @@ const StudentProfile = () => {
   ========================================================= */
 
   const addSkill = async () => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
     const skill =
       skillInput.trim();
 
-    if (!skill) return;
+
+    if (!skill) {
+      return;
+    }
 
 
     try {
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+
       const response =
         await fetch(
-          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/add-skill?skill=${encodeURIComponent(skill)}`,
+          `${API_BASE}/api/students/${profile.id}/add-skill?skill=${encodeURIComponent(skill)}`,
           {
             method: "PUT",
 
@@ -696,6 +1538,23 @@ const StudentProfile = () => {
         );
 
 
+      /*
+       * JWT expired
+       */
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return;
+      }
+
+
       if (!response.ok) {
         throw new Error(
           "Failed to add skill"
@@ -703,24 +1562,44 @@ const StudentProfile = () => {
       }
 
 
-      setExtraData({
+      const updatedSkills = [
+        ...extraData.skills,
+        skill,
+      ];
+
+
+      const updatedExtraData = {
         ...extraData,
 
-        skills: [
-          ...extraData.skills,
-          skill,
-        ],
-      });
+        skills:
+          updatedSkills,
+      };
+
+
+      setExtraData(
+        updatedExtraData
+      );
+
+
+      /*
+       * Update cache
+       */
+      saveProfileToCache(
+        profile,
+        updatedExtraData
+      );
 
 
       setSkillInput("");
 
+
       toast.success(
         "Skill added"
       );
-
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       toast.error(
         "Failed to add skill"
@@ -737,10 +1616,26 @@ const StudentProfile = () => {
     skill,
     index
   ) => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
     try {
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+
       const response =
         await fetch(
-          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/delete-skill?skill=${encodeURIComponent(skill)}`,
+          `${API_BASE}/api/students/${profile.id}/delete-skill?skill=${encodeURIComponent(skill)}`,
           {
             method: "PUT",
 
@@ -750,6 +1645,23 @@ const StudentProfile = () => {
             },
           }
         );
+
+
+      /*
+       * JWT expired
+       */
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return;
+      }
 
 
       if (!response.ok) {
@@ -766,19 +1678,35 @@ const StudentProfile = () => {
         );
 
 
-      setExtraData({
+      const updatedExtraData = {
         ...extraData,
+
         skills:
           updatedSkills,
-      });
+      };
+
+
+      setExtraData(
+        updatedExtraData
+      );
+
+
+      /*
+       * Update cache
+       */
+      saveProfileToCache(
+        profile,
+        updatedExtraData
+      );
 
 
       toast.success(
         "Skill removed"
       );
-
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       toast.error(
         "Failed to remove skill"
@@ -792,16 +1720,35 @@ const StudentProfile = () => {
   ========================================================= */
 
   const addLink = async () => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
     const link =
       linkInput.trim();
 
-    if (!link) return;
+
+    if (!link) {
+      return;
+    }
 
 
     try {
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+
       const response =
         await fetch(
-          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/add-link?link=${encodeURIComponent(link)}`,
+          `${API_BASE}/api/students/${profile.id}/add-link?link=${encodeURIComponent(link)}`,
           {
             method: "PUT",
 
@@ -813,6 +1760,23 @@ const StudentProfile = () => {
         );
 
 
+      /*
+       * JWT expired
+       */
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return;
+      }
+
+
       if (!response.ok) {
         throw new Error(
           "Failed to add link"
@@ -820,24 +1784,44 @@ const StudentProfile = () => {
       }
 
 
-      setExtraData({
+      const updatedLinks = [
+        ...extraData.links,
+        link,
+      ];
+
+
+      const updatedExtraData = {
         ...extraData,
 
-        links: [
-          ...extraData.links,
-          link,
-        ],
-      });
+        links:
+          updatedLinks,
+      };
+
+
+      setExtraData(
+        updatedExtraData
+      );
+
+
+      /*
+       * Update cache
+       */
+      saveProfileToCache(
+        profile,
+        updatedExtraData
+      );
 
 
       setLinkInput("");
 
+
       toast.success(
         "Link added"
       );
-
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       toast.error(
         "Failed to add link"
@@ -854,10 +1838,26 @@ const StudentProfile = () => {
     link,
     index
   ) => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
     try {
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+
       const response =
         await fetch(
-          `https://remote-internship-30135.onrender.com/api/students/${profile.id}/delete-link?link=${encodeURIComponent(link)}`,
+          `${API_BASE}/api/students/${profile.id}/delete-link?link=${encodeURIComponent(link)}`,
           {
             method: "PUT",
 
@@ -867,6 +1867,23 @@ const StudentProfile = () => {
             },
           }
         );
+
+
+      /*
+       * JWT expired
+       */
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return;
+      }
 
 
       if (!response.ok) {
@@ -883,19 +1900,35 @@ const StudentProfile = () => {
         );
 
 
-      setExtraData({
+      const updatedExtraData = {
         ...extraData,
+
         links:
           updatedLinks,
-      });
+      };
+
+
+      setExtraData(
+        updatedExtraData
+      );
+
+
+      /*
+       * Update cache
+       */
+      saveProfileToCache(
+        profile,
+        updatedExtraData
+      );
 
 
       toast.success(
         "Link removed"
       );
-
     } catch (error) {
-      console.error(error);
+      console.error(
+        error
+      );
 
       toast.error(
         "Failed to remove link"
@@ -908,20 +1941,20 @@ const StudentProfile = () => {
      IMAGE URL
   ========================================================= */
 
-  const API_BASE =
-    "https://remote-internship-30135.onrender.com";
-
   const DEFAULT_IMAGE =
     "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
+
   const imageSrc =
     profile?.image &&
-      profile.image !== "default"
-      ? profile.image.startsWith("data:")
+    profile.image !== "default"
+      ? profile.image.startsWith(
+          "data:"
+        )
         ? profile.image
         : `${API_BASE}/api/students/image/${encodeURIComponent(
-          profile.image
-        )}`
+            profile.image
+          )}`
       : DEFAULT_IMAGE;
 
 
@@ -931,7 +1964,6 @@ const StudentProfile = () => {
 
   return (
     <>
-
       <div className="sd-layout">
 
 
@@ -1048,8 +2080,6 @@ const StudentProfile = () => {
 
               <div className="profile-header">
 
-                {/* Title */}
-
                 <div>
 
                   <h1>
@@ -1063,6 +2093,8 @@ const StudentProfile = () => {
                   </p>
 
                 </div>
+
+
                 {/* Completion */}
 
                 <div className="dashboard-card">
@@ -1086,13 +2118,13 @@ const StudentProfile = () => {
 
 
                   <p className="progress-text">
-                    {completion}% Complete
+
+                    {completion}%
+                    Complete
+
                   </p>
 
                 </div>
-
-
-
 
 
                 {/* Edit / Save */}
@@ -1102,7 +2134,9 @@ const StudentProfile = () => {
                   <button
                     className="primary-btn"
                     onClick={() =>
-                      setEditMode(true)
+                      setEditMode(
+                        true
+                      )
                     }
                   >
                     Edit Profile
@@ -1112,7 +2146,9 @@ const StudentProfile = () => {
 
                   <button
                     className="primary-btn"
-                    onClick={handleSave}
+                    onClick={
+                      handleSave
+                    }
                   >
                     Save Changes
                   </button>
@@ -1241,7 +2277,7 @@ const StudentProfile = () => {
                             name={field}
                             value={
                               profile[
-                              field
+                                field
                               ] || ""
                             }
                             onChange={
@@ -1254,8 +2290,9 @@ const StudentProfile = () => {
                           <span>
                             {
                               profile[
-                              field
-                              ] || "N/A"
+                                field
+                              ] ||
+                              "N/A"
                             }
                           </span>
 
@@ -1299,7 +2336,7 @@ const StudentProfile = () => {
                             name={field}
                             value={
                               profile[
-                              field
+                                field
                               ] || ""
                             }
                             onChange={
@@ -1312,8 +2349,9 @@ const StudentProfile = () => {
                           <span>
                             {
                               profile[
-                              field
-                              ] || "N/A"
+                                field
+                              ] ||
+                              "N/A"
                             }
                           </span>
 
@@ -1398,7 +2436,7 @@ const StudentProfile = () => {
                         setResumeFile(
                           e.target
                             .files?.[0] ||
-                          null
+                            null
                         )
                       }
                     />
@@ -1423,7 +2461,9 @@ const StudentProfile = () => {
                   <div className="resume-card">
 
                     <p>
-                      {extraData.resume}
+                      {
+                        extraData.resume
+                      }
                     </p>
 
 
@@ -1498,6 +2538,7 @@ const StudentProfile = () => {
                           "Enter"
                         ) {
                           e.preventDefault();
+
                           addSkill();
                         }
                       }}
@@ -1608,6 +2649,7 @@ const StudentProfile = () => {
                           "Enter"
                         ) {
                           e.preventDefault();
+
                           addLink();
                         }
                       }}
@@ -1714,11 +2756,14 @@ const StudentProfile = () => {
                       background:
                         "rgba(255,255,255,0.2)",
 
-                      border: "none",
+                      border:
+                        "none",
 
-                      color: "#fff",
+                      color:
+                        "#fff",
 
-                      fontSize: "22px",
+                      fontSize:
+                        "22px",
 
                       cursor:
                         "pointer",
@@ -1771,8 +2816,11 @@ function NavButton({
   return (
     <button
       type="button"
-      className={`sd-nav-button ${active ? "active" : ""
-        }`}
+      className={`sd-nav-button ${
+        active
+          ? "active"
+          : ""
+      }`}
       onClick={onClick}
       aria-current={
         active

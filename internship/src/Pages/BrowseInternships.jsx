@@ -20,6 +20,13 @@ import {
   X,
 } from "lucide-react";
 
+const API_BASE =
+  "https://remote-internship-30135.onrender.com";
+
+const TOKEN_KEY = "token";
+const STUDENT_PROFILE_KEY = "studentProfile";
+const BROWSE_CACHE_KEY = "browseInternshipsData";
+
 const BrowseInternships = () => {
   const navigate = useNavigate();
 
@@ -27,16 +34,36 @@ const BrowseInternships = () => {
   const [search, setSearch] = useState("");
 
   const [showApplyModal, setShowApplyModal] = useState(false);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] =
+    useState(false);
 
-  const [selectedIntern, setSelectedIntern] = useState(null);
+  const [selectedIntern, setSelectedIntern] =
+    useState(null);
+
   const [appliedIds, setAppliedIds] = useState([]);
 
   const [loading, setLoading] = useState(true);
 
-  const student =
-    JSON.parse(localStorage.getItem("studentProfile")) || {};
+  const getStudent = () => {
+    try {
+      const storedStudent = localStorage.getItem(
+        STUDENT_PROFILE_KEY
+      );
 
+      return storedStudent
+        ? JSON.parse(storedStudent)
+        : {};
+    } catch (error) {
+      console.error(
+        "Failed to read student profile:",
+        error
+      );
+
+      return {};
+    }
+  };
+
+  const student = getStudent();
   const userId = student?.id;
 
   const [form, setForm] = useState({
@@ -49,87 +76,409 @@ const BrowseInternships = () => {
     resumeName: "",
   });
 
+  const logout = () => {
+    localStorage.removeItem(TOKEN_KEY);
 
-  /* =========================================================
-     LOAD INTERNSHIPS
-  ========================================================= */
+    localStorage.removeItem(
+      STUDENT_PROFILE_KEY
+    );
 
-  useEffect(() => {
-    const loadInternships = async () => {
-      try {
-        setLoading(true);
+    localStorage.removeItem(
+      BROWSE_CACHE_KEY
+    );
 
-        const res = await fetch(
-          "https://remote-internship-30135.onrender.com/api/internships/all"
+    localStorage.removeItem("user");
+    localStorage.removeItem("student");
+
+    navigate("/login", {
+      replace: true,
+    });
+  };
+
+  const getTokenExpiration = () => {
+    const token =
+      localStorage.getItem(TOKEN_KEY);
+
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const parts = token.split(".");
+
+      if (parts.length !== 3) {
+        return null;
+      }
+      const payload = JSON.parse(
+        atob(
+          parts[1]
+            .replace(/-/g, "+")
+            .replace(/_/g, "/")
+        )
+      );
+
+      if (!payload.exp) {
+        return null;
+      }
+      return payload.exp * 1000;
+    } catch (error) {
+      console.error(
+        "Invalid JWT:",
+        error
+      );
+
+      return null;
+    }
+  };
+
+  const checkTokenExpiration = () => {
+    const token =
+      localStorage.getItem(TOKEN_KEY);
+
+    if (!token) {
+      logout();
+      return false;
+    }
+
+    const expirationTime =
+      getTokenExpiration();
+
+    if (!expirationTime) {
+      return true;
+    }
+    if (Date.now() >= expirationTime) {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+
+      return false;
+    }
+
+    return true;
+  };
+
+  const setupTokenExpirationTimer = () => {
+    const expirationTime =
+      getTokenExpiration();
+
+    if (!expirationTime) {
+      return null;
+    }
+
+    const remainingTime =
+      expirationTime - Date.now();
+
+    if (remainingTime <= 0) {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+
+      return null;
+    }
+
+    const timer = setTimeout(() => {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+    }, remainingTime);
+
+    return timer;
+  };
+
+  const loadCachedInternships = () => {
+    try {
+      const cached =
+        localStorage.getItem(
+          BROWSE_CACHE_KEY
         );
 
-        if (!res.ok) {
-          throw new Error("Failed to load internships");
+      if (!cached) {
+        return false;
+      }
+
+      const data = JSON.parse(cached);
+
+      if (!data) {
+        return false;
+      }
+      const currentStudent =
+        getStudent();
+
+      if (
+        data.studentId &&
+        currentStudent.id &&
+        Number(data.studentId) !==
+          Number(currentStudent.id)
+      ) {
+        localStorage.removeItem(
+          BROWSE_CACHE_KEY
+        );
+
+        return false;
+      }
+      setInternships(
+        Array.isArray(data.internships)
+          ? data.internships
+          : []
+      );
+
+      setAppliedIds(
+        Array.isArray(data.appliedIds)
+          ? data.appliedIds
+          : []
+      );
+
+      return true;
+    } catch (error) {
+      console.error(
+        "Failed to load cached internships:",
+        error
+      );
+
+      localStorage.removeItem(
+        BROWSE_CACHE_KEY
+      );
+
+      return false;
+    }
+  };
+
+  const saveInternshipsToCache = (
+    internshipData,
+    appliedList
+  ) => {
+    try {
+      const cacheData = {
+        studentId: userId,
+        internships: internshipData,
+        appliedIds: appliedList,
+        cachedAt: Date.now(),
+      };
+
+      localStorage.setItem(
+        BROWSE_CACHE_KEY,
+        JSON.stringify(cacheData)
+      );
+    } catch (error) {
+      console.error(
+        "Failed to cache internships:",
+        error
+      );
+    }
+  };
+
+  const loadInternships = async () => {
+    /*
+     * Check JWT before API call
+     */
+    if (!checkTokenExpiration()) {
+      return;
+    }
+
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+
+      const res = await fetch(
+        `${API_BASE}/api/internships/all`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (
+        res.status === 401 ||
+        res.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(
+          "Failed to load internships"
+        );
+      }
+
+      const data = await res.json();
+
+      setInternships(data);
+
+      const appliedList = [];
+
+      for (const intern of data) {
+        /*
+         * Check JWT again before every request
+         */
+        if (!checkTokenExpiration()) {
+          return;
         }
 
-        const data = await res.json();
-
-        setInternships(data);
-
-        const appliedList = [];
-
-        for (const intern of data) {
-          try {
-            const applicationRes = await fetch(
-              `https://remote-internship-30135.onrender.com/api/applications/check?studentId=${userId}&internshipId=${intern.id}`
+        try {
+          const applicationRes =
+            await fetch(
+              `${API_BASE}/api/applications/check?studentId=${userId}&internshipId=${intern.id}`,
+              {
+                method: "GET",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type":
+                    "application/json",
+                },
+              }
+            );
+          if (
+            applicationRes.status ===
+              401 ||
+            applicationRes.status ===
+              403
+          ) {
+            toast.error(
+              "Your session has expired. Please login again."
             );
 
-            const isApplied = await applicationRes.json();
+            logout();
 
-            if (isApplied) {
-              appliedList.push(intern.id);
-            }
-          } catch (error) {
+            return;
+          }
+
+          if (!applicationRes.ok) {
             console.error(
-              `Error checking application for internship ${intern.id}:`,
-              error
+              `Failed to check application for internship ${intern.id}`
+            );
+
+            continue;
+          }
+
+          const isApplied =
+            await applicationRes.json();
+
+          if (isApplied) {
+            appliedList.push(
+              intern.id
             );
           }
+        } catch (error) {
+          console.error(
+            `Error checking application for internship ${intern.id}:`,
+            error
+          );
         }
+      }
 
-        setAppliedIds(appliedList);
-      } catch (error) {
-        console.error("Internship loading error:", error);
+      setAppliedIds(appliedList);
 
-        toast.error(
-          "Couldn't load internships. Please try again."
-        );
-      } finally {
-        setLoading(false);
+      saveInternshipsToCache(
+        data,
+        appliedList
+      );
+    } catch (error) {
+      console.error(
+        "Internship loading error:",
+        error
+      );
+
+      toast.error(
+        "Couldn't load internships. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+    if (!checkTokenExpiration()) {
+      return;
+    }
+    const timer =
+      setupTokenExpirationTimer();
+
+    const hasCache =
+      loadCachedInternships();
+
+    if (hasCache) {
+      setLoading(false);
+    } else {
+      loadInternships();
+    }
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
       }
     };
+  }, []);
+  useEffect(() => {
+    const handleVisibilityChange =
+      () => {
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+          checkTokenExpiration();
+        }
+      };
 
-    loadInternships();
-  }, [userId]);
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
 
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, []);
 
-  /* =========================================================
-     SEARCH
-  ========================================================= */
+  const filteredInternships =
+    internships.filter((intern) =>
+      intern.title
+        ?.toLowerCase()
+        .includes(
+          search.toLowerCase()
+        )
+    );
 
-  const filteredInternships = internships.filter((intern) =>
-    intern.title
-      ?.toLowerCase()
-      .includes(search.toLowerCase())
-  );
-
-
-  /* =========================================================
-     RESUME UPLOAD
-  ========================================================= */
-
-  const handleResumeUpload = (file) => {
+  const handleResumeUpload = (
+    file
+  ) => {
     if (!file) return;
 
-    const maxSize = 5 * 1024 * 1024;
+    const maxSize =
+      5 * 1024 * 1024;
 
     if (file.size > maxSize) {
-      toast.error("Resume must be less than 5MB");
+      toast.error(
+        "Resume must be less than 5MB"
+      );
+
       return;
     }
 
@@ -139,8 +488,15 @@ const BrowseInternships = () => {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
 
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Only PDF or Word files allowed");
+    if (
+      !allowedTypes.includes(
+        file.type
+      )
+    ) {
+      toast.error(
+        "Only PDF or Word files allowed"
+      );
+
       return;
     }
 
@@ -151,18 +507,23 @@ const BrowseInternships = () => {
     }));
   };
 
-
-  /* =========================================================
-     SUBMIT APPLICATION
-  ========================================================= */
-
   const handleSubmit = async () => {
+    /*
+     * Check JWT before submission
+     */
+    if (!checkTokenExpiration()) {
+      return;
+    }
+
     if (
       !form.name ||
       !form.email ||
       !form.organization
     ) {
-      toast.error("Please fill all required fields.");
+      toast.error(
+        "Please fill all required fields."
+      );
+
       return;
     }
 
@@ -173,42 +534,101 @@ const BrowseInternships = () => {
       toast.error(
         "Resume is required for Employees."
       );
+
       return;
     }
 
     if (!selectedIntern) {
-      toast.error("Please select an internship.");
+      toast.error(
+        "Please select an internship."
+      );
+
       return;
     }
 
-    const formData = new FormData();
+    if (!userId) {
+      toast.error(
+        "Student information not found. Please login again."
+      );
 
-    formData.append("fullName", form.name);
-    formData.append("email", form.email);
-    formData.append("role", form.role);
+      logout();
+
+      return;
+    }
+
+    const formData =
+      new FormData();
+
+    formData.append(
+      "fullName",
+      form.name
+    );
+
+    formData.append(
+      "email",
+      form.email
+    );
+
+    formData.append(
+      "role",
+      form.role
+    );
+
     formData.append(
       "university",
       form.organization
     );
-    formData.append("gpa", form.gpa || "");
-    formData.append("userId", userId);
+
+    formData.append(
+      "gpa",
+      form.gpa || ""
+    );
+
+    formData.append(
+      "userId",
+      userId
+    );
+
     formData.append(
       "internshipId",
       selectedIntern.id
     );
 
     if (form.resume) {
-      formData.append("resume", form.resume);
+      formData.append(
+        "resume",
+        form.resume
+      );
     }
 
     try {
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
       const res = await fetch(
-        "https://remote-internship-30135.onrender.com/api/applications/apply",
+        `${API_BASE}/api/applications/apply`,
         {
           method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           body: formData,
         }
       );
+      if (
+        res.status === 401 ||
+        res.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return;
+      }
 
       if (!res.ok) {
         throw new Error(
@@ -220,10 +640,21 @@ const BrowseInternships = () => {
         "Application submitted successfully!"
       );
 
-      setAppliedIds((prev) => [
-        ...prev,
-        selectedIntern.id,
-      ]);
+      const updatedAppliedIds = [
+        ...new Set([
+          ...appliedIds,
+          selectedIntern.id,
+        ]),
+      ];
+
+      setAppliedIds(
+        updatedAppliedIds
+      );
+
+      saveInternshipsToCache(
+        internships,
+        updatedAppliedIds
+      );
 
       setShowApplyModal(false);
 
@@ -238,7 +669,10 @@ const BrowseInternships = () => {
         resumeName: "",
       });
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Application submission error:",
+        error
+      );
 
       toast.error(
         "Error submitting application"
@@ -246,16 +680,9 @@ const BrowseInternships = () => {
     }
   };
 
-
-  /* =========================================================
-     RENDER
-  ========================================================= */
-
   return (
     <>
-
       <div className="sd-layout">
-
 
         <aside className="sd-sidebar">
 
@@ -265,65 +692,66 @@ const BrowseInternships = () => {
               icon={LayoutDashboard}
               label="Dashboard"
               onClick={() =>
-                navigate("/student-dashboard")
+                navigate(
+                  "/student-dashboard"
+                )
               }
             />
-
 
             <NavButton
               active
               icon={Search}
               label="Browse Internships"
               onClick={() =>
-                navigate("/browse-internships")
+                navigate(
+                  "/browse-internships"
+                )
               }
             />
-
 
             <NavButton
               icon={FileText}
               label="My Applications"
               onClick={() =>
-                navigate("/myapplications")
+                navigate(
+                  "/myapplications"
+                )
               }
             />
-
 
             <NavButton
               icon={ClipboardList}
               label="My Tasks"
               onClick={() =>
-                navigate("/mytasks")
+                navigate(
+                  "/mytasks"
+                )
               }
             />
-
 
             <NavButton
               icon={MessageSquare}
               label="Feedback"
               onClick={() =>
-                navigate("/feedback")
+                navigate(
+                  "/feedback"
+                )
               }
             />
-
 
             <NavButton
               icon={User}
               label="Profile"
               onClick={() =>
-                navigate("/student-profile")
+                navigate(
+                  "/student-profile"
+                )
               }
             />
 
           </nav>
 
         </aside>
-
-
-        {/* ===================================================
-            MAIN CONTENT
-        =================================================== */}
-
         <main className="sd-main browse-page">
 
           {/* Page heading */}
@@ -335,17 +763,11 @@ const BrowseInternships = () => {
             </h1>
 
             <p>
-              Find the right internship opportunity
-              for your career.
+              Find the right internship
+              opportunity for your career.
             </p>
 
           </div>
-
-
-          {/* =================================================
-              SEARCH
-          ================================================= */}
-
           <div className="browse-search-box">
 
             <Search size={20} />
@@ -355,23 +777,27 @@ const BrowseInternships = () => {
               placeholder="Search internships by title..."
               value={search}
               onChange={(e) =>
-                setSearch(e.target.value)
+                setSearch(
+                  e.target.value
+                )
               }
             />
 
           </div>
-
-
-          {/* =================================================
-              INTERNSHIP LIST
-          ================================================= */}
-
           {loading ? (
+
             <div className="sd-loader">
+
               <div className="sd-spinner"></div>
-              <p>Loading internships…</p>
+
+              <p>
+                Loading internships…
+              </p>
+
             </div>
-          ) : filteredInternships.length === 0 ? (
+
+          ) : filteredInternships.length ===
+            0 ? (
 
             <section className="sd-card browse-empty">
 
@@ -409,35 +835,47 @@ const BrowseInternships = () => {
                         {intern.title}
                       </h3>
 
-
                       <div className="browse-meta">
 
                         <span>
-                          <MapPin size={16} />
-                          {intern.location}
+                          <MapPin
+                            size={16}
+                          />
+
+                          {
+                            intern.location
+                          }
                         </span>
 
-
                         <span>
-                          <Clock size={16} />
-                          {intern.duration}
+                          <Clock
+                            size={16}
+                          />
+
+                          {
+                            intern.duration
+                          }
                         </span>
 
-
                         <span>
-                          <DollarSign size={16} />
-                          {intern.stipend}
+                          <DollarSign
+                            size={16}
+                          />
+
+                          {
+                            intern.stipend
+                          }
                         </span>
 
                       </div>
 
-
                       <p>
-                        {intern.description}
+                        {
+                          intern.description
+                        }
                       </p>
 
                     </div>
-
 
                     {/* Actions */}
 
@@ -473,7 +911,6 @@ const BrowseInternships = () => {
 
                       )}
 
-
                       <button
                         className="view-btun"
                         onClick={() => {
@@ -500,11 +937,6 @@ const BrowseInternships = () => {
 
           )}
 
-
-          {/* =================================================
-              APPLY MODAL
-          ================================================= */}
-
           {showApplyModal &&
             selectedIntern && (
 
@@ -512,19 +944,21 @@ const BrowseInternships = () => {
 
                 <div className="browse-modal-container">
 
-                  {/* Modal header */}
-
                   <div className="browse-modal-header">
 
                     <h2>
                       Apply for{" "}
-                      {selectedIntern.title}
+                      {
+                        selectedIntern.title
+                      }
                     </h2>
 
                     <button
                       className="modal-close-btn"
                       onClick={() =>
-                        setShowApplyModal(false)
+                        setShowApplyModal(
+                          false
+                        )
                       }
                       aria-label="Close"
                     >
@@ -532,7 +966,6 @@ const BrowseInternships = () => {
                     </button>
 
                   </div>
-
 
                   {/* Full name + email */}
 
@@ -545,17 +978,19 @@ const BrowseInternships = () => {
                       </label>
 
                       <input
-                        value={form.name}
+                        value={
+                          form.name
+                        }
                         onChange={(e) =>
                           setForm({
                             ...form,
-                            name: e.target.value,
+                            name: e.target
+                              .value,
                           })
                         }
                       />
 
                     </div>
-
 
                     <div className="form-group">
 
@@ -564,12 +999,15 @@ const BrowseInternships = () => {
                       </label>
 
                       <input
-                        value={form.email}
+                        value={
+                          form.email
+                        }
                         onChange={(e) =>
                           setForm({
                             ...form,
                             email:
-                              e.target.value,
+                              e.target
+                                .value,
                           })
                         }
                       />
@@ -577,7 +1015,6 @@ const BrowseInternships = () => {
                     </div>
 
                   </div>
-
 
                   {/* Role */}
 
@@ -588,14 +1025,18 @@ const BrowseInternships = () => {
                     </label>
 
                     <select
-                      value={form.role}
+                      value={
+                        form.role
+                      }
                       onChange={(e) =>
                         setForm({
                           ...form,
-                          role: e.target.value,
+                          role: e.target
+                            .value,
                         })
                       }
                     >
+
                       <option value="Student">
                         Student
                       </option>
@@ -603,10 +1044,10 @@ const BrowseInternships = () => {
                       <option value="Employee">
                         Employee
                       </option>
+
                     </select>
 
                   </div>
-
 
                   {/* Organization + CGPA */}
 
@@ -626,39 +1067,41 @@ const BrowseInternships = () => {
                           setForm({
                             ...form,
                             organization:
-                              e.target.value,
+                              e.target
+                                .value,
                           })
                         }
                       />
 
                     </div>
 
-
                     {form.role ===
                       "Student" && (
 
-                        <div className="form-group">
+                      <div className="form-group">
 
-                          <label>
-                            CGPA/Percentage
-                          </label>
+                        <label>
+                          CGPA/Percentage
+                        </label>
 
-                          <input
-                            value={form.gpa}
-                            onChange={(e) =>
-                              setForm({
-                                ...form,
-                                gpa: e.target.value,
-                              })
-                            }
-                          />
+                        <input
+                          value={
+                            form.gpa
+                          }
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              gpa: e.target
+                                .value,
+                            })
+                          }
+                        />
 
-                        </div>
+                      </div>
 
-                      )}
+                    )}
 
                   </div>
-
 
                   {/* Resume */}
 
@@ -701,7 +1144,6 @@ const BrowseInternships = () => {
                       or Click to Upload
                     </p>
 
-
                     <input
                       id="resumeInput"
                       type="file"
@@ -711,7 +1153,8 @@ const BrowseInternships = () => {
                       }}
                       onChange={(e) => {
                         const file =
-                          e.target.files[0];
+                          e.target
+                            .files[0];
 
                         if (file) {
                           handleResumeUpload(
@@ -720,7 +1163,6 @@ const BrowseInternships = () => {
                         }
                       }}
                     />
-
 
                     <button
                       className="choose-file-btn"
@@ -738,18 +1180,18 @@ const BrowseInternships = () => {
                       Choose File
                     </button>
 
-
                     {form.resumeName && (
 
                       <p className="uploaded-file">
                         📄{" "}
-                        {form.resumeName}
+                        {
+                          form.resumeName
+                        }
                       </p>
 
                     )}
 
                   </div>
-
 
                   {/* Modal buttons */}
 
@@ -766,10 +1208,11 @@ const BrowseInternships = () => {
                       Cancel
                     </button>
 
-
                     <button
                       className="submit-btn"
-                      onClick={handleSubmit}
+                      onClick={
+                        handleSubmit
+                      }
                     >
                       Submit Application
                     </button>
@@ -781,11 +1224,6 @@ const BrowseInternships = () => {
               </div>
 
             )}
-
-
-          {/* =================================================
-              DETAILS MODAL
-          ================================================= */}
 
           {showDetailsModal &&
             selectedIntern && (
@@ -814,54 +1252,60 @@ const BrowseInternships = () => {
 
                   </div>
 
-
                   <div className="details-content">
 
                     <p>
                       <strong>
                         Title:
                       </strong>{" "}
-                      {selectedIntern.title}
+                      {
+                        selectedIntern.title
+                      }
                     </p>
-
 
                     <p>
                       <strong>
                         Company:
                       </strong>{" "}
-                      {selectedIntern.companyname}
+                      {
+                        selectedIntern.companyname
+                      }
                     </p>
-
 
                     <p>
                       <strong>
                         Location:
                       </strong>{" "}
-                      {selectedIntern.location}
+                      {
+                        selectedIntern.location
+                      }
                     </p>
-
 
                     <p>
                       <strong>
                         Duration:
                       </strong>{" "}
-                      {selectedIntern.duration}
+                      {
+                        selectedIntern.duration
+                      }
                     </p>
-
 
                     <p>
                       <strong>
                         Stipend:
                       </strong>{" "}
-                      {selectedIntern.stipend}
+                      {
+                        selectedIntern.stipend
+                      }
                     </p>
-
 
                     <p>
                       <strong>
                         Description:
                       </strong>{" "}
-                      {selectedIntern.description}
+                      {
+                        selectedIntern.description
+                      }
                     </p>
 
                   </div>
@@ -879,11 +1323,6 @@ const BrowseInternships = () => {
   );
 };
 
-
-/* =============================================================
-   SIDEBAR NAVIGATION BUTTON
-============================================================= */
-
 function NavButton({
   active,
   icon: Icon,
@@ -892,18 +1331,23 @@ function NavButton({
 }) {
   return (
     <button
-      className={`sd-nav-button ${active ? "active" : ""
-        }`}
+      className={`sd-nav-button ${
+        active ? "active" : ""
+      }`}
       onClick={onClick}
       aria-current={
-        active ? "page" : undefined
+        active
+          ? "page"
+          : undefined
       }
     >
+
       <Icon size={20} />
 
       <span>
         {label}
       </span>
+
     </button>
   );
 }

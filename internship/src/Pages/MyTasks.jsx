@@ -16,11 +16,16 @@ import {
   MessageSquare,
   User,
   CheckCircle,
-  Trash2,
   Upload,
   X,
 } from "lucide-react";
 
+const API_BASE =
+  "https://remote-internship-30135.onrender.com";
+
+const TOKEN_KEY = "token";
+const STUDENT_PROFILE_KEY = "studentProfile";
+const TASKS_CACHE_KEY = "studentTasksData";
 
 const MyTasks = () => {
   const navigate = useNavigate();
@@ -29,8 +34,25 @@ const MyTasks = () => {
      STUDENT
   ========================================================= */
 
-  const student =
-    JSON.parse(localStorage.getItem("studentProfile")) || {};
+  const getStudent = () => {
+    try {
+      const storedStudent =
+        localStorage.getItem(STUDENT_PROFILE_KEY);
+
+      return storedStudent
+        ? JSON.parse(storedStudent)
+        : {};
+    } catch (error) {
+      console.error(
+        "Failed to read student profile:",
+        error
+      );
+
+      return {};
+    }
+  };
+
+  const student = getStudent();
 
 
   /* =========================================================
@@ -59,56 +81,494 @@ const MyTasks = () => {
 
 
   /* =========================================================
-     LOAD TASKS
+     LOGOUT
   ========================================================= */
 
-  useEffect(() => {
+  const logout = () => {
+    /*
+     * Remove JWT
+     */
+    localStorage.removeItem(
+      TOKEN_KEY
+    );
+
+    /*
+     * Remove student profile
+     */
+    localStorage.removeItem(
+      STUDENT_PROFILE_KEY
+    );
+
+    /*
+     * Remove task cache
+     */
+    localStorage.removeItem(
+      TASKS_CACHE_KEY
+    );
+
+    /*
+     * Remove other possible
+     * authentication data
+     */
+    localStorage.removeItem("user");
+    localStorage.removeItem("student");
+
+    /*
+     * Redirect to login
+     */
+    navigate("/login", {
+      replace: true,
+    });
+  };
+
+
+  /* =========================================================
+     GET JWT EXPIRATION
+  ========================================================= */
+
+  const getTokenExpiration = () => {
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const parts =
+        token.split(".");
+
+      if (parts.length !== 3) {
+        return null;
+      }
+
+      const payload = JSON.parse(
+        atob(
+          parts[1]
+            .replace(/-/g, "+")
+            .replace(/_/g, "/")
+        )
+      );
+
+      if (!payload.exp) {
+        return null;
+      }
+
+      /*
+       * JWT exp = seconds
+       * JS Date = milliseconds
+       */
+      return payload.exp * 1000;
+    } catch (error) {
+      console.error(
+        "Invalid JWT:",
+        error
+      );
+
+      return null;
+    }
+  };
+
+
+  /* =========================================================
+     CHECK JWT EXPIRATION
+  ========================================================= */
+
+  const checkTokenExpiration = () => {
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+    /*
+     * No token
+     */
+    if (!token) {
+      logout();
+      return false;
+    }
+
+    const expirationTime =
+      getTokenExpiration();
+
+    /*
+     * If exp is not available,
+     * allow request to continue.
+     */
+    if (!expirationTime) {
+      return true;
+    }
+
+    /*
+     * Token expired
+     */
+    if (
+      Date.now() >=
+      expirationTime
+    ) {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+
+      return false;
+    }
+
+    return true;
+  };
+
+
+  /* =========================================================
+     JWT EXPIRATION TIMER
+  ========================================================= */
+
+  const setupTokenExpirationTimer =
+    () => {
+      const expirationTime =
+        getTokenExpiration();
+
+      if (!expirationTime) {
+        return null;
+      }
+
+      const remainingTime =
+        expirationTime -
+        Date.now();
+
+      /*
+       * Already expired
+       */
+      if (remainingTime <= 0) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return null;
+      }
+
+      /*
+       * Automatically logout when
+       * JWT expires.
+       */
+      const timer =
+        setTimeout(() => {
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+          logout();
+        }, remainingTime);
+
+      return timer;
+    };
+
+
+  /* =========================================================
+     LOAD TASKS FROM CACHE
+  ========================================================= */
+
+  const loadCachedTasks = () => {
+    try {
+      const cached =
+        localStorage.getItem(
+          TASKS_CACHE_KEY
+        );
+
+      /*
+       * No cache
+       */
+      if (!cached) {
+        return false;
+      }
+
+      const data =
+        JSON.parse(cached);
+
+      if (!data) {
+        return false;
+      }
+
+      /*
+       * Get current student
+       */
+      const currentStudent =
+        getStudent();
+
+      /*
+       * Make sure cache belongs
+       * to current student.
+       */
+      if (
+        data.studentId &&
+        currentStudent.id &&
+        Number(data.studentId) !==
+          Number(currentStudent.id)
+      ) {
+        localStorage.removeItem(
+          TASKS_CACHE_KEY
+        );
+
+        return false;
+      }
+
+      /*
+       * Restore tasks
+       */
+      setTasks(
+        Array.isArray(data.tasks)
+          ? data.tasks
+          : []
+      );
+
+      return true;
+    } catch (error) {
+      console.error(
+        "Failed to load cached tasks:",
+        error
+      );
+
+      localStorage.removeItem(
+        TASKS_CACHE_KEY
+      );
+
+      return false;
+    }
+  };
+
+
+  /* =========================================================
+     SAVE TASKS TO CACHE
+  ========================================================= */
+
+  const saveTasksToCache = (
+    taskData
+  ) => {
+    try {
+      const cacheData = {
+        studentId:
+          student?.id,
+
+        tasks: Array.isArray(
+          taskData
+        )
+          ? taskData
+          : [],
+
+        cachedAt: Date.now(),
+      };
+
+      localStorage.setItem(
+        TASKS_CACHE_KEY,
+        JSON.stringify(
+          cacheData
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Failed to cache tasks:",
+        error
+      );
+    }
+  };
+
+
+  /* =========================================================
+     LOAD TASKS FROM API
+  ========================================================= */
+
+  const loadTasks = async () => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
     if (!student?.id) {
       setLoading(false);
       return;
     }
 
-    const loadTasks = async () => {
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
 
-        const res = await fetch(
-          `https://remote-internship-30135.onrender.com/api/tasks/student/${student.id}`
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
         );
 
-        if (!res.ok) {
-          throw new Error(
-            "Failed to load tasks"
-          );
-        }
+      const res =
+        await fetch(
+          `${API_BASE}/api/tasks/student/${student.id}`,
+          {
+            method: "GET",
 
-        const data = await res.json();
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
 
-        setTasks(
-          Array.isArray(data)
-            ? data
-            : []
+              "Content-Type":
+                "application/json",
+            },
+          }
         );
 
-      } catch (error) {
-        console.error(
-          "Tasks error:",
-          error
-        );
-
-        setTasks([]);
-
+      /*
+       * JWT expired
+       */
+      if (
+        res.status === 401 ||
+        res.status === 403
+      ) {
         toast.error(
-          "Couldn't load your tasks."
+          "Your session has expired. Please login again."
         );
 
-      } finally {
-        setLoading(false);
+        logout();
+
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(
+          "Failed to load tasks"
+        );
+      }
+
+      const data =
+        await res.json();
+
+      const taskData =
+        Array.isArray(data)
+          ? data
+          : [];
+
+      /*
+       * Update state
+       */
+      setTasks(taskData);
+
+      /*
+       * Save to localStorage
+       */
+      saveTasksToCache(
+        taskData
+      );
+    } catch (error) {
+      console.error(
+        "Tasks error:",
+        error
+      );
+
+      setTasks([]);
+
+      toast.error(
+        "Couldn't load your tasks."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  /* =========================================================
+     INITIAL LOAD
+
+     1. Check JWT
+     2. Setup JWT timer
+     3. Check cache
+     4. Cache exists -> NO API
+     5. No cache -> API ONCE
+  ========================================================= */
+
+  useEffect(() => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+    /*
+     * Setup automatic logout
+     */
+    const timer =
+      setupTokenExpirationTimer();
+
+    /*
+     * First try localStorage
+     */
+    const hasCache =
+      loadCachedTasks();
+
+    if (hasCache) {
+      /*
+       * Cache exists.
+       *
+       * NO API REQUEST.
+       */
+      setLoading(false);
+    } else {
+      /*
+       * No cache.
+       *
+       * Fetch once.
+       */
+      loadTasks();
+    }
+
+    /*
+     * Cleanup timer
+     */
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
       }
     };
+  }, []);
 
-    loadTasks();
-  }, [student?.id]);
+
+  /* =========================================================
+     CHECK JWT WHEN RETURNING TO TAB
+
+     IMPORTANT:
+     This DOES NOT fetch tasks.
+
+     It only checks JWT expiration.
+  ========================================================= */
+
+  useEffect(() => {
+    const handleVisibilityChange =
+      () => {
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+          checkTokenExpiration();
+        }
+      };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, []);
 
 
   /* =========================================================
@@ -149,7 +609,9 @@ const MyTasks = () => {
      OPEN SUBMIT MODAL
   ========================================================= */
 
-  const openSubmitModal = (task) => {
+  const openSubmitModal = (
+    task
+  ) => {
     setSelectedTask(task);
 
     setDescription("");
@@ -175,18 +637,25 @@ const MyTasks = () => {
      FILE → BASE64
   ========================================================= */
 
-  const convertToBase64 = (file) => {
+  const convertToBase64 = (
+    file
+  ) => {
     return new Promise(
       (resolve, reject) => {
         const reader =
           new FileReader();
 
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(
+          file
+        );
 
         reader.onload = () =>
-          resolve(reader.result);
+          resolve(
+            reader.result
+          );
 
-        reader.onerror = reject;
+        reader.onerror =
+          reject;
       }
     );
   };
@@ -196,137 +665,220 @@ const MyTasks = () => {
      SUBMIT TASK
   ========================================================= */
 
-  const handleSubmitTask = async () => {
-    if (!selectedTask) {
-      return;
-    }
+  const handleSubmitTask =
+    async () => {
+      if (!selectedTask) {
+        return;
+      }
+
+      /*
+       * Check JWT
+       */
+      if (
+        !checkTokenExpiration()
+      ) {
+        return;
+      }
+
+      /*
+       * Validate description
+       */
+      if (!description.trim()) {
+        toast("Enter Description", {
+          icon: "⚠️",
+        });
+
+        return;
+      }
+
+      try {
+        let fileData = null;
+
+        let fileName = null;
+
+        /* ---------------------------------------------
+           Convert selected file
+        --------------------------------------------- */
+
+        if (selectedFile) {
+          fileData =
+            await convertToBase64(
+              selectedFile
+            );
+
+          fileName =
+            selectedFile.name;
+        }
 
 
-    if (!description.trim()) {
-      toast("Enter Description", {
-        icon: "⚠️",
-      });
+        /* ---------------------------------------------
+           Submit
+        --------------------------------------------- */
 
-      return;
-    }
-
-
-    try {
-      let fileData = null;
-
-      let fileName = null;
-
-
-      /* ---------------------------------------------
-         Convert selected file
-      --------------------------------------------- */
-
-      if (selectedFile) {
-        fileData =
-          await convertToBase64(
-            selectedFile
+        const token =
+          localStorage.getItem(
+            TOKEN_KEY
           );
 
-        fileName =
-          selectedFile.name;
-      }
+        const res =
+          await fetch(
+            `${API_BASE}/api/tasks/submit/${selectedTask.id}`,
+            {
+              method: "PUT",
 
+              headers: {
+                "Content-Type":
+                  "application/json",
 
-      /* ---------------------------------------------
-         Submit
-      --------------------------------------------- */
+                Authorization:
+                  `Bearer ${token}`,
+              },
 
-      const res = await fetch(
-        `https://remote-internship-30135.onrender.com/api/tasks/submit/${selectedTask.id}`,
-        {
-          method: "PUT",
+              body: JSON.stringify({
+                description,
+                fileName,
+                fileData,
+              }),
+            }
+          );
 
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
+        /*
+         * JWT expired
+         */
+        if (
+          res.status === 401 ||
+          res.status === 403
+        ) {
+          toast.error(
+            "Your session has expired. Please login again."
+          );
 
-          body: JSON.stringify({
-            description,
-            fileName,
-            fileData,
-          }),
+          logout();
+
+          return;
         }
-      );
+
+        if (!res.ok) {
+          throw new Error(
+            "Task submission failed"
+          );
+        }
+
+        /*
+         * Try to get updated task from
+         * backend if response contains JSON.
+         */
+        let updatedTask = null;
+
+        try {
+          updatedTask =
+            await res.json();
+        } catch {
+          /*
+           * Backend may return empty response.
+           * In that case we update the task
+           * locally.
+           */
+        }
+
+        /*
+         * Close modal
+         */
+        closeSubmitModal();
 
 
-      if (!res.ok) {
-        throw new Error(
-          "Task submission failed"
+        /* ---------------------------------------------
+           UPDATE TASK LOCALLY
+        --------------------------------------------- */
+
+        let updatedTasks;
+
+        if (
+          updatedTask &&
+          typeof updatedTask ===
+            "object" &&
+          updatedTask.id
+        ) {
+          /*
+           * Backend returned updated task
+           */
+          updatedTasks =
+            tasks.map(
+              (task) =>
+                task.id ===
+                selectedTask.id
+                  ? updatedTask
+                  : task
+            );
+        } else {
+          /*
+           * Backend didn't return task.
+           *
+           * Update current task locally.
+           */
+          updatedTasks =
+            tasks.map(
+              (task) =>
+                task.id ===
+                selectedTask.id
+                  ? {
+                      ...task,
+
+                      status:
+                        "COMPLETED",
+
+                      submissionDescription:
+                        description,
+
+                      submissionFileName:
+                        fileName,
+                    }
+                  : task
+            );
+        }
+
+        /*
+         * Update React state
+         */
+        setTasks(
+          updatedTasks
+        );
+
+        /*
+         * Update localStorage
+         */
+        saveTasksToCache(
+          updatedTasks
+        );
+
+        toast.success(
+          "Task submitted successfully!"
+        );
+      } catch (error) {
+        console.error(
+          "Submit task error:",
+          error
+        );
+
+        toast.error(
+          "Something went wrong. Please try again!"
         );
       }
-
-
-      toast.success(
-        "Task submitted successfully!"
-      );
-
-
-      closeSubmitModal();
-
-
-      /* ---------------------------------------------
-         Reload tasks
-      --------------------------------------------- */
-
-      setLoading(true);
-
-
-      const taskRes =
-        await fetch(
-          `https://remote-internship-30135.onrender.com/api/tasks/student/${student.id}`
-        );
-
-
-      if (!taskRes.ok) {
-        throw new Error(
-          "Failed to refresh tasks"
-        );
-      }
-
-
-      const taskData =
-        await taskRes.json();
-
-
-      setTasks(
-        Array.isArray(taskData)
-          ? taskData
-          : []
-      );
-
-    } catch (error) {
-      console.error(
-        "Submit task error:",
-        error
-      );
-
-      toast.error(
-        "Something went wrong. Please try again!"
-      );
-
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
 
   /* =========================================================
      DELETE SUBMISSION
   ========================================================= */
 
-  const handleDeleteSubmission = (
-    taskId
-  ) => {
-    setDeleteTaskId(taskId);
+  const handleDeleteSubmission =
+    (taskId) => {
+      setDeleteTaskId(taskId);
 
-    setShowDeleteModal(true);
-  };
+      setShowDeleteModal(
+        true
+      );
+    };
 
 
   /* =========================================================
@@ -339,15 +891,52 @@ const MyTasks = () => {
         return;
       }
 
+      /*
+       * Check JWT
+       */
+      if (
+        !checkTokenExpiration()
+      ) {
+        return;
+      }
+
       try {
+        const token =
+          localStorage.getItem(
+            TOKEN_KEY
+          );
+
         const res =
           await fetch(
-            `https://remote-internship-30135.onrender.com/api/tasks/${deleteTaskId}`,
+            `${API_BASE}/api/tasks/${deleteTaskId}`,
             {
               method: "PUT",
+
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+
+                "Content-Type":
+                  "application/json",
+              },
             }
           );
 
+        /*
+         * JWT expired
+         */
+        if (
+          res.status === 401 ||
+          res.status === 403
+        ) {
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+          logout();
+
+          return;
+        }
 
         if (!res.ok) {
           throw new Error(
@@ -355,38 +944,84 @@ const MyTasks = () => {
           );
         }
 
+        /*
+         * Try to read updated task
+         */
+        let updatedTask = null;
 
-        setLoading(true);
-
-
-        const taskRes =
-          await fetch(
-            `https://remote-internship-30135.onrender.com/api/tasks/student/${student.id}`
-          );
-
-
-        if (!taskRes.ok) {
-          throw new Error(
-            "Failed to refresh tasks"
-          );
+        try {
+          updatedTask =
+            await res.json();
+        } catch {
+          /*
+           * Backend may return empty response.
+           */
         }
 
+        let updatedTasks;
 
-        const data =
-          await taskRes.json();
+        if (
+          updatedTask &&
+          typeof updatedTask ===
+            "object" &&
+          updatedTask.id
+        ) {
+          /*
+           * Backend returned updated task
+           */
+          updatedTasks =
+            tasks.map(
+              (task) =>
+                task.id ===
+                deleteTaskId
+                  ? updatedTask
+                  : task
+            );
+        } else {
+          /*
+           * Locally reset submission
+           */
+          updatedTasks =
+            tasks.map(
+              (task) =>
+                task.id ===
+                deleteTaskId
+                  ? {
+                      ...task,
 
+                      status:
+                        "PENDING",
 
+                      submissionDescription:
+                        null,
+
+                      submissionFileName:
+                        null,
+
+                      submissionFileData:
+                        null,
+                    }
+                  : task
+            );
+        }
+
+        /*
+         * Update React state
+         */
         setTasks(
-          Array.isArray(data)
-            ? data
-            : []
+          updatedTasks
         );
 
+        /*
+         * Update localStorage
+         */
+        saveTasksToCache(
+          updatedTasks
+        );
 
         toast.success(
           "Submission deleted successfully"
         );
-
       } catch (error) {
         console.error(
           "Delete submission error:",
@@ -396,11 +1031,10 @@ const MyTasks = () => {
         toast.error(
           "Failed to delete submission"
         );
-
       } finally {
-        setLoading(false);
-
-        setShowDeleteModal(false);
+        setShowDeleteModal(
+          false
+        );
 
         setDeleteTaskId(null);
       }
@@ -413,9 +1047,7 @@ const MyTasks = () => {
 
   return (
     <>
-
       <div className="sd-layout">
-
 
         {/* ===================================================
             SIDEBAR
@@ -471,7 +1103,9 @@ const MyTasks = () => {
               icon={ClipboardList}
               label="My Tasks"
               onClick={() =>
-                navigate("/mytasks")
+                navigate(
+                  "/mytasks"
+                )
               }
             />
 
@@ -482,7 +1116,9 @@ const MyTasks = () => {
               icon={MessageSquare}
               label="Feedback"
               onClick={() =>
-                navigate("/feedback")
+                navigate(
+                  "/feedback"
+                )
               }
             />
 
@@ -509,7 +1145,6 @@ const MyTasks = () => {
         =================================================== */}
 
         <main className="sd-main">
-
 
           {/* =================================================
               PAGE HEADER
@@ -549,7 +1184,6 @@ const MyTasks = () => {
 
             <>
 
-
               {/* =================================================
                   PROGRESS
               ================================================= */}
@@ -587,7 +1221,8 @@ const MyTasks = () => {
                   PENDING TASKS
               ================================================= */}
 
-              {pendingTasks.length === 0 ? (
+              {pendingTasks.length ===
+              0 ? (
 
                 <div className="empty-task-card">
 
@@ -624,9 +1259,11 @@ const MyTasks = () => {
 
 
                         <p>
-                          {task.description ||
+                          {
+                            task.description ||
                             task.title ||
-                            "Task assigned to you."}
+                            "Task assigned to you."
+                          }
                         </p>
 
 
@@ -638,6 +1275,7 @@ const MyTasks = () => {
                             )
                           }
                         >
+
                           <Upload
                             size={16}
                             style={{
@@ -678,7 +1316,6 @@ const MyTasks = () => {
                         key={task.id}
                         className="completed-task"
                       >
-
 
                         {/* =====================================
                             TASK INFORMATION
@@ -735,16 +1372,20 @@ const MyTasks = () => {
                           )}
 
 
+                          {/* Submission file */}
+
                           {task.submissionFileName && (
 
                             <a
-                              href={`https://remote-internship-30135.onrender.com/api/tasks/file/${task.id}`}
+                              href={`${API_BASE}/api/tasks/file/${task.id}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="view-btn"
                             >
 
-                              {task.submissionFileName}
+                              {
+                                task.submissionFileName
+                              }
 
                             </a>
 
@@ -771,7 +1412,6 @@ const MyTasks = () => {
                               )
                             }
                           >
-
 
                             Delete
 
@@ -805,7 +1445,9 @@ const MyTasks = () => {
 
         <div
           className="modal-overlay"
-          onClick={closeSubmitModal}
+          onClick={
+            closeSubmitModal
+          }
         >
 
           <div
@@ -814,7 +1456,6 @@ const MyTasks = () => {
               event.stopPropagation()
             }
           >
-
 
             {/* Modal Header */}
 
@@ -861,6 +1502,7 @@ const MyTasks = () => {
             {/* Task */}
 
             <p>
+
               <strong>
                 Task:
               </strong>{" "}
@@ -878,7 +1520,9 @@ const MyTasks = () => {
 
 
             <textarea
-              value={description}
+              value={
+                description
+              }
               onChange={(event) =>
                 setDescription(
                   event.target.value
@@ -899,7 +1543,8 @@ const MyTasks = () => {
               type="file"
               onChange={(event) =>
                 setSelectedFile(
-                  event.target.files?.[0] ||
+                  event.target
+                    .files?.[0] ||
                     null
                 )
               }
@@ -914,7 +1559,9 @@ const MyTasks = () => {
 
                 Selected:{" "}
 
-                {selectedFile.name}
+                {
+                  selectedFile.name
+                }
 
               </p>
 
@@ -964,7 +1611,9 @@ const MyTasks = () => {
         <div
           className="modal-overlay"
           onClick={() =>
-            setShowDeleteModal(false)
+            setShowDeleteModal(
+              false
+            )
           }
         >
 
@@ -982,7 +1631,8 @@ const MyTasks = () => {
 
             <p
               style={{
-                marginTop: "10px",
+                marginTop:
+                  "10px",
                 marginBottom:
                   "20px",
               }}

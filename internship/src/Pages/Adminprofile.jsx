@@ -4,6 +4,40 @@ import Loader from "../Components/Loader";
 import "../Styles/AdminProfile.css";
 import toast from "react-hot-toast";
 
+const API_BASE =
+  "https://remote-internship-30135.onrender.com";
+
+const TOKEN_KEY = "token";
+const ADMIN_PROFILE_KEY = "adminProfile";
+const ADMIN_PROFILE_FULL_KEY = "adminProfileFull";
+
+const getTokenExpiration = () => {
+  const token = localStorage.getItem(TOKEN_KEY);
+
+  if (!token) return null;
+
+  try {
+    const parts = token.split(".");
+
+    if (parts.length !== 3) return null;
+
+    const payload = JSON.parse(
+      atob(
+        parts[1]
+          .replace(/-/g, "+")
+          .replace(/_/g, "/")
+      )
+    );
+
+    return payload.exp
+      ? payload.exp * 1000
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+
 import {
   LayoutDashboard,
   FileText,
@@ -56,6 +90,122 @@ const AdminProfile = () => {
   });
 
   /* =========================
+     LOGOUT
+  ========================= */
+
+  const logout = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(ADMIN_PROFILE_KEY);
+    localStorage.removeItem(ADMIN_PROFILE_FULL_KEY);
+
+    /*
+     * Clear admin page caches as well.
+     */
+    localStorage.removeItem("adminDashboardData");
+    localStorage.removeItem("adminPostedInternships");
+    localStorage.removeItem("adminApplicationsData");
+    localStorage.removeItem("adminTrackProgressData");
+    localStorage.removeItem("adminTrackProgressTasks");
+
+    localStorage.removeItem("user");
+    localStorage.removeItem("admin");
+
+    navigate("/login", {
+      replace: true,
+    });
+  };
+
+  const checkTokenExpiration = () => {
+    const currentToken =
+      localStorage.getItem(TOKEN_KEY);
+
+    if (!currentToken) {
+      logout();
+      return false;
+    }
+
+    const expirationTime =
+      getTokenExpiration();
+
+    /*
+     * If exp is unavailable, don't
+     * incorrectly reject the session.
+     */
+    if (!expirationTime) {
+      return true;
+    }
+
+    if (Date.now() >= expirationTime) {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+      return false;
+    }
+
+    return true;
+  };
+
+  const setupTokenExpirationTimer = () => {
+    const expirationTime =
+      getTokenExpiration();
+
+    if (!expirationTime) {
+      return null;
+    }
+
+    const remainingTime =
+      expirationTime - Date.now();
+
+    if (remainingTime <= 0) {
+      logout();
+      return null;
+    }
+
+    return setTimeout(() => {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+    }, remainingTime);
+  };
+
+  const applyProfileData = (data) => {
+    setProfile(data);
+
+    let hiringRoles = [];
+
+    try {
+      hiringRoles = data.hiringRoles
+        ? JSON.parse(data.hiringRoles)
+        : [];
+    } catch {
+      hiringRoles = [];
+    }
+
+    setExtraData({
+      industry: data.industry || "",
+      companySize: data.companySize || "",
+      description: data.description || "",
+      hiringRoles,
+    });
+  };
+
+  const saveProfileCache = (data) => {
+    localStorage.setItem(
+      ADMIN_PROFILE_KEY,
+      JSON.stringify(data)
+    );
+
+    localStorage.setItem(
+      ADMIN_PROFILE_FULL_KEY,
+      JSON.stringify(data)
+    );
+  };
+
+  /* =========================
      LOAD ADMIN PROFILE
   ========================= */
 
@@ -65,56 +215,180 @@ const AdminProfile = () => {
       return;
     }
 
-    setLoading(true);
+    if (!checkTokenExpiration()) {
+      return;
+    }
 
-    fetch(
-      `https://remote-internship-30135.onrender.com/api/employers/${storedAdmin.id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to load profile");
+    const timer =
+      setupTokenExpirationTimer();
+
+    /*
+     * FIRST:
+     * Use the complete cached profile.
+     *
+     * This prevents another API call when
+     * navigating away and returning to Profile.
+     */
+    const cachedProfile =
+      localStorage.getItem(
+        ADMIN_PROFILE_FULL_KEY
+      );
+
+    let cacheUsed = false;
+
+    if (cachedProfile) {
+      try {
+        const cachedData =
+          JSON.parse(cachedProfile);
+
+        /*
+         * Make sure this cache belongs
+         * to the currently logged-in admin.
+         */
+        if (
+          cachedData?.id &&
+          Number(cachedData.id) ===
+            Number(storedAdmin.id)
+        ) {
+          applyProfileData(
+            cachedData
+          );
+
+          cacheUsed = true;
+          setLoading(false);
         }
-
-        return res.json();
-      })
-      .then((data) => {
-        setProfile(data);
-
-        let hiringRoles = [];
-
-        try {
-          hiringRoles = data.hiringRoles
-            ? JSON.parse(data.hiringRoles)
-            : [];
-        } catch {
-          hiringRoles = [];
-        }
-
-        setExtraData({
-          industry: data.industry || "",
-          companySize: data.companySize || "",
-          description: data.description || "",
-          hiringRoles,
-        });
-
-        localStorage.setItem(
-          "adminProfileFull",
-          JSON.stringify(data)
+      } catch (error) {
+        console.error(
+          "Invalid profile cache:",
+          error
         );
 
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Profile loading error:", err);
-        toast.error("Couldn't load your profile.");
-        setLoading(false);
-      });
+        localStorage.removeItem(
+          ADMIN_PROFILE_FULL_KEY
+        );
+      }
+    }
+
+    /*
+     * If the complete profile cache does not
+     * exist, display the basic admin profile
+     * immediately while fetching the full profile.
+     */
+    if (!cacheUsed && storedAdmin) {
+      applyProfileData(
+        storedAdmin
+      );
+    }
+
+    /*
+     * ONLY fetch when the complete profile
+     * is not already cached.
+     */
+    if (!cacheUsed) {
+      const currentToken =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+      setLoading(true);
+
+      fetch(
+        `${API_BASE}/api/employers/${storedAdmin.id}`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${currentToken}`,
+          },
+        }
+      )
+        .then((res) => {
+          if (
+            res.status === 401 ||
+            res.status === 403
+          ) {
+            toast.error(
+              "Your session has expired. Please login again."
+            );
+
+            logout();
+
+            throw new Error(
+              "SESSION_EXPIRED"
+            );
+          }
+
+          if (!res.ok) {
+            throw new Error(
+              "Failed to load profile"
+            );
+          }
+
+          return res.json();
+        })
+        .then((data) => {
+          if (!data) return;
+
+          applyProfileData(data);
+          saveProfileCache(data);
+        })
+        .catch((err) => {
+          if (
+            err.message ===
+            "SESSION_EXPIRED"
+          ) {
+            return;
+          }
+
+          console.error(
+            "Profile loading error:",
+            err
+          );
+
+          toast.error(
+            "Couldn't load your profile."
+          );
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
   }, [storedAdmin?.id]);
+
+  /*
+   * Returning to the browser tab:
+   * ONLY check JWT.
+   *
+   * DO NOT fetch the profile again.
+   */
+  useEffect(() => {
+    const handleVisibilityChange =
+      () => {
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+          checkTokenExpiration();
+        }
+      };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, []);
 
   /* =========================
      PROFILE COMPLETION
@@ -153,6 +427,10 @@ const AdminProfile = () => {
   ========================= */
 
   const handleSave = async () => {
+    if (!checkTokenExpiration()) {
+      return;
+    }
+
     const updated = {
       companyname: profile.companyname,
       empname: profile.empname,
@@ -174,7 +452,7 @@ const AdminProfile = () => {
 
     try {
       const res = await fetch(
-        `https://remote-internship-30135.onrender.com/api/employers/${profile.id}`,
+        `${API_BASE}/api/employers/${profile.id}`,
         {
           method: "PUT",
           headers: {
@@ -184,6 +462,18 @@ const AdminProfile = () => {
           body: JSON.stringify(updated),
         }
       );
+
+      if (
+        res.status === 401 ||
+        res.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+        return;
+      }
 
       if (!res.ok) {
         throw new Error("Failed to update profile");
@@ -196,15 +486,7 @@ const AdminProfile = () => {
         ...data,
       }));
 
-      localStorage.setItem(
-        "adminProfile",
-        JSON.stringify(data)
-      );
-
-      localStorage.setItem(
-        "adminProfileFull",
-        JSON.stringify(data)
-      );
+      saveProfileCache(data);
 
       setEditMode(false);
 
@@ -225,13 +507,17 @@ const AdminProfile = () => {
       profile.image !== "default"
       ? profile.image.startsWith("data:")
         ? profile.image
-        : `https://remote-internship-30135.onrender.com/api/employers/image/${encodeURIComponent(
+        : `${API_BASE}/api/employers/image/${encodeURIComponent(
           profile.image
         )}`
       : DEFAULT_IMAGE;
 
 
   const handleImageUpload = async (e) => {
+    if (!checkTokenExpiration()) {
+      return;
+    }
+
     const file = e.target.files[0];
 
     if (!file) return;
@@ -254,7 +540,7 @@ const AdminProfile = () => {
 
     try {
       const res = await fetch(
-        `https://remote-internship-30135.onrender.com/api/employers/${profile.id}/uploadImage`,
+        `${API_BASE}/api/employers/${profile.id}/uploadImage`,
         {
           method: "POST",
           headers: {
@@ -264,16 +550,31 @@ const AdminProfile = () => {
         }
       );
 
+      if (
+        res.status === 401 ||
+        res.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+        return;
+      }
+
       if (!res.ok) {
         throw new Error("Image upload failed");
       }
 
       const fileName = await res.text();
 
-      setProfile((prev) => ({
-        ...prev,
+      const updatedProfile = {
+        ...profile,
         image: fileName,
-      }));
+      };
+
+      setProfile(updatedProfile);
+      saveProfileCache(updatedProfile);
 
       toast.success("Company logo uploaded!");
     } catch (err) {
@@ -288,9 +589,13 @@ const AdminProfile = () => {
   ========================= */
 
   const removeImage = async () => {
+    if (!checkTokenExpiration()) {
+      return;
+    }
+
     try {
       const res = await fetch(
-        `https://remote-internship-30135.onrender.com/api/employers/${profile.id}/deleteImage`,
+        `${API_BASE}/api/employers/${profile.id}/deleteImage`,
         {
           method: "DELETE",
           headers: {
@@ -299,14 +604,29 @@ const AdminProfile = () => {
         }
       );
 
+      if (
+        res.status === 401 ||
+        res.status === 403
+      ) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+        return;
+      }
+
       if (!res.ok) {
         throw new Error("Failed to remove image");
       }
 
-      setProfile((prev) => ({
-        ...prev,
+      const updatedProfile = {
+        ...profile,
         image: "",
-      }));
+      };
+
+      setProfile(updatedProfile);
+      saveProfileCache(updatedProfile);
 
       toast.success("Company logo removed.");
     } catch (err) {

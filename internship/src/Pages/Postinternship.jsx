@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import Headerfordash from "../Components/Headerfordash";
 import Loader from "../Components/Loader";
+
 import "../Styles/Postinternship.css";
+
 import toast from "react-hot-toast";
 
 import {
@@ -14,30 +17,78 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 
+
+/* =========================================================
+   API + LOCAL STORAGE KEYS
+========================================================= */
+
+const API_BASE =
+  "https://remote-internship-30135.onrender.com";
+
+const TOKEN_KEY =
+  "token";
+
+const ADMIN_PROFILE_KEY =
+  "adminProfile";
+
+const ADMIN_DASHBOARD_CACHE_KEY =
+  "adminDashboardData";
+
+const POSTED_INTERNSHIPS_CACHE_KEY =
+  "adminPostedInternships";
+
+
 const Postinternship = () => {
+
   const navigate = useNavigate();
 
-  const [internships, setInternships] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   /* =========================================================
      ADMIN
   ========================================================= */
 
-  const storedAdmin =
-    localStorage.getItem("adminProfile");
+  const getStoredAdmin = () => {
+    try {
+      const storedAdmin =
+        localStorage.getItem(
+          ADMIN_PROFILE_KEY
+        );
 
-  const admin = storedAdmin
-    ? JSON.parse(storedAdmin)
-    : {};
+      return storedAdmin
+        ? JSON.parse(storedAdmin)
+        : {};
+    } catch (error) {
+      console.error(
+        "Failed to read admin profile:",
+        error
+      );
 
-  const employerId = admin?.id;
+      return {};
+    }
+  };
 
-  const token =
-    localStorage.getItem("token");
+
+  const admin =
+    getStoredAdmin();
+
+
+  const employerId =
+    admin?.id;
+
 
   /* =========================================================
-     DELETE CONFIRMATION STATE
+     STATE
+  ========================================================= */
+
+  const [internships, setInternships] =
+    useState([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+
+  /* =========================================================
+     DELETE CONFIRMATION
   ========================================================= */
 
   const [showDeleteModal, setShowDeleteModal] =
@@ -46,262 +97,1128 @@ const Postinternship = () => {
   const [deleteInternshipId, setDeleteInternshipId] =
     useState(null);
 
+
   /* =========================================================
      FORM
   ========================================================= */
 
-  const [form, setForm] = useState({
-    title: "",
-    companyname: admin?.companyname || "",
-    duration: "",
-    location: "Remote",
-    stipend: "",
-    description: "",
-    requirements: "",
-    skills: "",
-  });
+  const [form, setForm] =
+    useState({
+      title: "",
+
+      companyname:
+        admin?.companyname || "",
+
+      duration: "",
+
+      location: "Remote",
+
+      stipend: "",
+
+      description: "",
+
+      requirements: "",
+
+      skills: "",
+    });
+
 
   /* =========================================================
-     LOAD INTERNSHIPS
+     LOGOUT
   ========================================================= */
 
-  useEffect(() => {
-    if (!employerId) {
-      setLoading(false);
+  const logout = () => {
 
-      toast("Employer not found. Please login again.", {
-        icon: "⚠️",
-      });
+    /*
+     * Remove JWT
+     */
+    localStorage.removeItem(
+      TOKEN_KEY
+    );
 
-      navigate("/login");
 
-      return;
-    }
+    /*
+     * Remove admin profile
+     */
+    localStorage.removeItem(
+      ADMIN_PROFILE_KEY
+    );
 
-    loadInternships();
-  }, [employerId]);
 
-  const loadInternships = async () => {
-    try {
-      setLoading(true);
+    /*
+     * Remove this page cache
+     */
+    localStorage.removeItem(
+      POSTED_INTERNSHIPS_CACHE_KEY
+    );
 
-      const res = await fetch(
-        `https://remote-internship-30135.onrender.com/api/internships/employer/${employerId}`,
-        {
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        }
+
+    /*
+     * Remove dashboard cache
+     */
+    localStorage.removeItem(
+      ADMIN_DASHBOARD_CACHE_KEY
+    );
+
+
+    /*
+     * Remove possible generic auth data
+     */
+    localStorage.removeItem("user");
+
+    localStorage.removeItem("admin");
+
+
+    /*
+     * Redirect
+     */
+    navigate("/login", {
+      replace: true,
+    });
+  };
+
+
+  /* =========================================================
+     GET JWT EXPIRATION
+  ========================================================= */
+
+  const getTokenExpiration = () => {
+
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
       );
 
-      if (!res.ok) {
-        throw new Error(
-          "Failed to fetch internships"
-        );
+
+    if (!token) {
+      return null;
+    }
+
+
+    try {
+
+      const parts =
+        token.split(".");
+
+
+      if (
+        parts.length !== 3
+      ) {
+        return null;
       }
 
-      const data = await res.json();
 
-      setInternships(
-        Array.isArray(data)
-          ? data
-          : []
+      const payload =
+        JSON.parse(
+          atob(
+            parts[1]
+              .replace(/-/g, "+")
+              .replace(/_/g, "/")
+          )
+        );
+
+
+      if (!payload.exp) {
+        return null;
+      }
+
+
+      /*
+       * JWT exp = seconds
+       * JavaScript Date = milliseconds
+       */
+      return (
+        payload.exp * 1000
       );
 
     } catch (error) {
+
       console.error(
-        "Error loading internships:",
+        "Invalid JWT:",
         error
       );
 
-      setInternships([]);
-
-      toast.error(
-        "Couldn't load internships."
-      );
-
-    } finally {
-      setLoading(false);
+      return null;
     }
   };
+
+
+  /* =========================================================
+     CHECK JWT EXPIRATION
+  ========================================================= */
+
+  const checkTokenExpiration = () => {
+
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+
+    /*
+     * No JWT
+     */
+    if (!token) {
+
+      logout();
+
+      return false;
+    }
+
+
+    const expirationTime =
+      getTokenExpiration();
+
+
+    /*
+     * Token doesn't have exp
+     */
+    if (!expirationTime) {
+      return true;
+    }
+
+
+    /*
+     * JWT expired
+     */
+    if (
+      Date.now() >=
+      expirationTime
+    ) {
+
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+
+      logout();
+
+
+      return false;
+    }
+
+
+    return true;
+  };
+
+
+  /* =========================================================
+     JWT AUTO LOGOUT TIMER
+  ========================================================= */
+
+  const setupTokenExpirationTimer =
+    () => {
+
+      const expirationTime =
+        getTokenExpiration();
+
+
+      if (!expirationTime) {
+        return null;
+      }
+
+
+      const remainingTime =
+        expirationTime -
+        Date.now();
+
+
+      /*
+       * Already expired
+       */
+      if (
+        remainingTime <= 0
+      ) {
+
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+
+        logout();
+
+
+        return null;
+      }
+
+
+      /*
+       * Automatically logout
+       * when JWT expires.
+       */
+      const timer =
+        setTimeout(() => {
+
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+
+          logout();
+
+        }, remainingTime);
+
+
+      return timer;
+    };
+
+
+  /* =========================================================
+     SAVE INTERNSHIPS TO CACHE
+  ========================================================= */
+
+  const saveInternshipsCache = (
+    internshipData
+  ) => {
+
+    try {
+
+      const cacheData = {
+        employerId,
+
+        internships:
+          Array.isArray(
+            internshipData
+          )
+            ? internshipData
+            : [],
+
+        cachedAt:
+          Date.now(),
+      };
+
+
+      localStorage.setItem(
+        POSTED_INTERNSHIPS_CACHE_KEY,
+        JSON.stringify(
+          cacheData
+        )
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Failed to save internships cache:",
+        error
+      );
+    }
+  };
+
+
+  /* =========================================================
+     SAVE ADMIN DASHBOARD CACHE
+     
+     We update the internships part of the
+     dashboard cache as well.
+  ========================================================= */
+
+  const updateDashboardInternshipCache =
+    (updatedInternships) => {
+
+      try {
+
+        const existing =
+          localStorage.getItem(
+            ADMIN_DASHBOARD_CACHE_KEY
+          );
+
+
+        if (!existing) {
+          return;
+        }
+
+
+        const dashboardData =
+          JSON.parse(
+            existing
+          );
+
+
+        if (!dashboardData) {
+          return;
+        }
+
+
+        /*
+         * Make sure the cache belongs
+         * to this admin.
+         */
+        if (
+          dashboardData.adminId &&
+          employerId &&
+          Number(
+            dashboardData.adminId
+          ) !== Number(employerId)
+        ) {
+          return;
+        }
+
+
+        const updatedDashboard = {
+          ...dashboardData,
+
+          internships:
+            Array.isArray(
+              updatedInternships
+            )
+              ? updatedInternships
+              : [],
+
+          cachedAt:
+            Date.now(),
+        };
+
+
+        localStorage.setItem(
+          ADMIN_DASHBOARD_CACHE_KEY,
+          JSON.stringify(
+            updatedDashboard
+          )
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Failed to update dashboard cache:",
+          error
+        );
+      }
+    };
+
+
+  /* =========================================================
+     LOAD INTERNSHIPS FROM CACHE
+  ========================================================= */
+
+  const loadCachedInternships =
+    () => {
+
+      try {
+
+        const cached =
+          localStorage.getItem(
+            POSTED_INTERNSHIPS_CACHE_KEY
+          );
+
+
+        /*
+         * No cache
+         */
+        if (!cached) {
+          return false;
+        }
+
+
+        const data =
+          JSON.parse(
+            cached
+          );
+
+
+        if (!data) {
+          return false;
+        }
+
+
+        /*
+         * Make sure cache belongs
+         * to current admin.
+         */
+        if (
+          data.employerId &&
+          employerId &&
+          Number(
+            data.employerId
+          ) !== Number(employerId)
+        ) {
+
+          localStorage.removeItem(
+            POSTED_INTERNSHIPS_CACHE_KEY
+          );
+
+
+          return false;
+        }
+
+
+        const cachedInternships =
+          Array.isArray(
+            data.internships
+          )
+            ? data.internships
+            : [];
+
+
+        setInternships(
+          cachedInternships
+        );
+
+
+        return true;
+
+      } catch (error) {
+
+        console.error(
+          "Failed to load internship cache:",
+          error
+        );
+
+
+        localStorage.removeItem(
+          POSTED_INTERNSHIPS_CACHE_KEY
+        );
+
+
+        return false;
+      }
+    };
+
+
+  /* =========================================================
+     LOAD INTERNSHIPS FROM API
+  ========================================================= */
+
+  const loadInternships =
+    async () => {
+
+      /*
+       * Check JWT
+       */
+      if (
+        !checkTokenExpiration()
+      ) {
+        return;
+      }
+
+
+      if (!employerId) {
+
+        setLoading(false);
+
+
+        toast(
+          "Employer not found. Please login again.",
+          {
+            icon: "⚠️",
+          }
+        );
+
+
+        navigate("/login");
+
+
+        return;
+      }
+
+
+      try {
+
+        setLoading(true);
+
+
+        const token =
+          localStorage.getItem(
+            TOKEN_KEY
+          );
+
+
+        const res =
+          await fetch(
+            `${API_BASE}/api/internships/employer/${employerId}`,
+            {
+              method: "GET",
+
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+
+                "Content-Type":
+                  "application/json",
+              },
+            }
+          );
+
+
+        /*
+         * JWT expired
+         */
+        if (
+          res.status === 401 ||
+          res.status === 403
+        ) {
+
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+
+          logout();
+
+
+          return;
+        }
+
+
+        if (!res.ok) {
+
+          throw new Error(
+            "Failed to fetch internships"
+          );
+        }
+
+
+        const data =
+          await res.json();
+
+
+        const internshipData =
+          Array.isArray(data)
+            ? data
+            : [];
+
+
+        /*
+         * Update React state
+         */
+        setInternships(
+          internshipData
+        );
+
+
+        /*
+         * Save page cache
+         */
+        saveInternshipsCache(
+          internshipData
+        );
+
+
+        /*
+         * Update dashboard cache
+         */
+        updateDashboardInternshipCache(
+          internshipData
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Error loading internships:",
+          error
+        );
+
+
+        setInternships([]);
+
+
+        toast.error(
+          "Couldn't load internships."
+        );
+
+      } finally {
+
+        setLoading(false);
+      }
+    };
+
+
+  /* =========================================================
+     INITIAL LOAD
+
+     1. Check JWT
+     2. Setup JWT timer
+     3. Check cache
+     4. Cache exists → NO API
+     5. Cache doesn't exist → API ONCE
+  ========================================================= */
+
+  useEffect(() => {
+
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
+    /*
+     * Setup automatic logout
+     */
+    const timer =
+      setupTokenExpirationTimer();
+
+
+    /*
+     * Check localStorage
+     */
+    const hasCache =
+      loadCachedInternships();
+
+
+    if (hasCache) {
+
+      /*
+       * CACHE EXISTS
+       *
+       * Do NOT fetch.
+       */
+      setLoading(false);
+
+    } else {
+
+      /*
+       * NO CACHE
+       *
+       * Fetch only once.
+       */
+      loadInternships();
+    }
+
+
+    /*
+     * Cleanup timer
+     */
+    return () => {
+
+      if (timer) {
+        clearTimeout(timer);
+      }
+
+    };
+
+  }, [employerId]);
+
+
+  /* =========================================================
+     CHECK JWT WHEN RETURNING TO TAB
+
+     IMPORTANT:
+     Does NOT call loadInternships().
+  ========================================================= */
+
+  useEffect(() => {
+
+    const handleVisibilityChange =
+      () => {
+
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+
+          /*
+           * Only check JWT.
+           *
+           * NO API request.
+           */
+          checkTokenExpiration();
+        }
+      };
+
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+
+    return () => {
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+
+    };
+
+  }, []);
+
 
   /* =========================================================
      INPUT CHANGE
   ========================================================= */
 
   const handleChange = (e) => {
+
     const {
       name,
       value,
     } = e.target;
 
-    setForm((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+
+    setForm(
+      (previous) => ({
+        ...previous,
+
+        [name]:
+          value,
+      })
+    );
   };
+
 
   /* =========================================================
      POST INTERNSHIP
   ========================================================= */
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit =
+    async (e) => {
 
-    if (
-      !form.title.trim() ||
-      !form.duration ||
-      !form.location
-    ) {
-      toast.error(
-        "Please fill in all required fields."
-      );
+      e.preventDefault();
 
-      return;
-    }
 
-    try {
-      const res = await fetch(
-        `https://remote-internship-30135.onrender.com/api/internships?employerId=${employerId}`,
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            Authorization:
-              `Bearer ${token}`,
-          },
-
-          body: JSON.stringify({
-            ...form,
-            companyname:
-              admin.companyname || "",
-          }),
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error(
-          "Failed to post internship"
-        );
+      /*
+       * Check JWT
+       */
+      if (
+        !checkTokenExpiration()
+      ) {
+        return;
       }
 
-      const data = await res.json();
 
-      setInternships((previous) => [
-        data,
-        ...previous,
-      ]);
+      /*
+       * Validate
+       */
+      if (
+        !form.title.trim() ||
+        !form.duration ||
+        !form.location
+      ) {
 
-      toast.success(
-        "Internship posted successfully!"
-      );
+        toast.error(
+          "Please fill in all required fields."
+        );
 
-      setForm({
-        title: "",
-        companyname:
-          admin?.companyname || "",
-        duration: "",
-        location: "Remote",
-        stipend: "",
-        description: "",
-        requirements: "",
-        skills: "",
-      });
 
-    } catch (error) {
-      console.error(
-        "Error posting internship:",
-        error
-      );
+        return;
+      }
 
-      toast.error(
-        "Error posting internship."
-      );
-    }
-  };
+
+      try {
+
+        const token =
+          localStorage.getItem(
+            TOKEN_KEY
+          );
+
+
+        const res =
+          await fetch(
+            `${API_BASE}/api/internships?employerId=${employerId}`,
+            {
+              method: "POST",
+
+              headers: {
+
+                "Content-Type":
+                  "application/json",
+
+                Authorization:
+                  `Bearer ${token}`,
+              },
+
+              body:
+                JSON.stringify({
+                  ...form,
+
+                  companyname:
+                    admin.companyname ||
+                    "",
+                }),
+            }
+          );
+
+
+        /*
+         * JWT expired
+         */
+        if (
+          res.status === 401 ||
+          res.status === 403
+        ) {
+
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+
+          logout();
+
+
+          return;
+        }
+
+
+        if (!res.ok) {
+
+          throw new Error(
+            "Failed to post internship"
+          );
+        }
+
+
+        const data =
+          await res.json();
+
+
+        /*
+         * Add new internship
+         * to current state.
+         */
+        const updatedInternships = [
+          data,
+          ...internships,
+        ];
+
+
+        setInternships(
+          updatedInternships
+        );
+
+
+        /*
+         * IMPORTANT:
+         * Update localStorage immediately.
+         */
+        saveInternshipsCache(
+          updatedInternships
+        );
+
+
+        /*
+         * IMPORTANT:
+         * Update Admin Dashboard cache too.
+         */
+        updateDashboardInternshipCache(
+          updatedInternships
+        );
+
+
+        toast.success(
+          "Internship posted successfully!"
+        );
+
+
+        /*
+         * Reset form
+         */
+        setForm({
+          title: "",
+
+          companyname:
+            admin?.companyname ||
+            "",
+
+          duration: "",
+
+          location: "Remote",
+
+          stipend: "",
+
+          description: "",
+
+          requirements: "",
+
+          skills: "",
+        });
+
+      } catch (error) {
+
+        console.error(
+          "Error posting internship:",
+          error
+        );
+
+
+        toast.error(
+          "Error posting internship."
+        );
+      }
+    };
+
 
   /* =========================================================
      OPEN DELETE CONFIRMATION
   ========================================================= */
 
-  const handleDelete = (id) => {
-    setDeleteInternshipId(id);
-    setShowDeleteModal(true);
+  const handleDelete = (
+    id
+  ) => {
+
+    setDeleteInternshipId(
+      id
+    );
+
+    setShowDeleteModal(
+      true
+    );
   };
+
 
   /* =========================================================
      CONFIRM DELETE INTERNSHIP
   ========================================================= */
 
-  const confirmDeleteInternship = async () => {
-    if (!deleteInternshipId) {
-      return;
-    }
+  const confirmDeleteInternship =
+    async () => {
 
-    try {
-      const res = await fetch(
-        `https://remote-internship-30135.onrender.com/api/internships/delete/${deleteInternshipId}`,
-        {
-          method: "DELETE",
-
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        }
-      );
-
-      const text =
-        await res.text();
-
-      if (!res.ok) {
-        toast.error(
-          text ||
-            "Unable to delete internship."
-        );
-
+      if (
+        !deleteInternshipId
+      ) {
         return;
       }
 
-      setInternships((previous) =>
-        previous.filter(
-          (item) =>
-            item.id !== deleteInternshipId
-        )
-      );
 
-      toast.success(
-        "Internship deleted successfully."
-      );
+      /*
+       * Check JWT
+       */
+      if (
+        !checkTokenExpiration()
+      ) {
+        return;
+      }
 
-    } catch (error) {
-      console.error(
-        "Delete error:",
-        error
-      );
 
-      toast.error(
-        "Error deleting internship."
-      );
+      try {
 
-    } finally {
-      setShowDeleteModal(false);
-      setDeleteInternshipId(null);
-    }
-  };
+        const token =
+          localStorage.getItem(
+            TOKEN_KEY
+          );
+
+
+        const res =
+          await fetch(
+            `${API_BASE}/api/internships/delete/${deleteInternshipId}`,
+            {
+              method: "DELETE",
+
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+              },
+            }
+          );
+
+
+        /*
+         * JWT expired
+         */
+        if (
+          res.status === 401 ||
+          res.status === 403
+        ) {
+
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+
+          logout();
+
+
+          return;
+        }
+
+
+        const text =
+          await res.text();
+
+
+        if (!res.ok) {
+
+          toast.error(
+            text ||
+              "Unable to delete internship."
+          );
+
+
+          return;
+        }
+
+
+        /*
+         * Remove from state
+         */
+        const updatedInternships =
+          internships.filter(
+            (item) =>
+              item.id !==
+              deleteInternshipId
+          );
+
+
+        setInternships(
+          updatedInternships
+        );
+
+
+        /*
+         * IMPORTANT:
+         * Update page cache.
+         */
+        saveInternshipsCache(
+          updatedInternships
+        );
+
+
+        /*
+         * IMPORTANT:
+         * Update dashboard cache.
+         */
+        updateDashboardInternshipCache(
+          updatedInternships
+        );
+
+
+        toast.success(
+          "Internship deleted successfully."
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Delete error:",
+          error
+        );
+
+
+        toast.error(
+          "Error deleting internship."
+        );
+
+      } finally {
+
+        setShowDeleteModal(
+          false
+        );
+
+        setDeleteInternshipId(
+          null
+        );
+      }
+    };
+
 
   /* =========================================================
      CANCEL DELETE
   ========================================================= */
 
   const cancelDelete = () => {
-    setShowDeleteModal(false);
-    setDeleteInternshipId(null);
+
+    setShowDeleteModal(
+      false
+    );
+
+    setDeleteInternshipId(
+      null
+    );
   };
+
 
   /* =========================================================
      RENDER
@@ -309,7 +1226,9 @@ const Postinternship = () => {
 
   return (
     <>
+
       <div className="admin-layout">
+
 
         {/* ===================================================
             SIDEBAR
@@ -318,6 +1237,9 @@ const Postinternship = () => {
         <aside className="sd-sidebar">
 
           <nav className="sd-nav">
+
+
+            {/* Dashboard */}
 
             <NavButton
               icon={LayoutDashboard}
@@ -328,6 +1250,9 @@ const Postinternship = () => {
                 )
               }
             />
+
+
+            {/* Post Internship */}
 
             <NavButton
               active
@@ -340,6 +1265,9 @@ const Postinternship = () => {
               }
             />
 
+
+            {/* Applications */}
+
             <NavButton
               icon={Users}
               label="Applications"
@@ -349,6 +1277,9 @@ const Postinternship = () => {
                 )
               }
             />
+
+
+            {/* Track Progress */}
 
             <NavButton
               icon={TrendingUp}
@@ -360,6 +1291,9 @@ const Postinternship = () => {
               }
             />
 
+
+            {/* Evaluations */}
+
             <NavButton
               icon={ClipboardCheck}
               label="Evaluations"
@@ -369,6 +1303,9 @@ const Postinternship = () => {
                 )
               }
             />
+
+
+            {/* Profile */}
 
             <NavButton
               icon={User}
@@ -384,11 +1321,13 @@ const Postinternship = () => {
 
         </aside>
 
+
         {/* ===================================================
             MAIN CONTENT
         =================================================== */}
 
         <main className="sd-main">
+
 
           {loading ? (
 
@@ -397,6 +1336,7 @@ const Postinternship = () => {
           ) : (
 
             <>
+
 
               {/* =============================================
                   PAGE HEADER
@@ -408,12 +1348,14 @@ const Postinternship = () => {
                   Post New Internship
                 </h1>
 
+
                 <p>
                   Create a new internship
                   opportunity for students.
                 </p>
 
               </div>
+
 
               {/* =============================================
                   FORM CARD
@@ -425,9 +1367,13 @@ const Postinternship = () => {
                   Internship Details
                 </h2>
 
+
                 <form
-                  onSubmit={handleSubmit}
+                  onSubmit={
+                    handleSubmit
+                  }
                 >
+
 
                   {/* Title */}
 
@@ -437,20 +1383,27 @@ const Postinternship = () => {
                       Internship Title
                     </label>
 
+
                     <input
                       id="title"
                       name="title"
                       type="text"
                       placeholder="Enter internship title"
-                      value={form.title}
-                      onChange={handleChange}
+                      value={
+                        form.title
+                      }
+                      onChange={
+                        handleChange
+                      }
                     />
 
                   </div>
 
+
                   {/* Duration + Location */}
 
                   <div className="form-grid">
+
 
                     <div className="form-group">
 
@@ -458,24 +1411,32 @@ const Postinternship = () => {
                         Duration
                       </label>
 
+
                       <select
                         id="duration"
                         name="duration"
-                        value={form.duration}
-                        onChange={handleChange}
+                        value={
+                          form.duration
+                        }
+                        onChange={
+                          handleChange
+                        }
                       >
 
                         <option value="">
                           Select duration
                         </option>
 
+
                         <option value="1 Month">
                           1 Month
                         </option>
 
+
                         <option value="3 Months">
                           3 Months
                         </option>
+
 
                         <option value="6 Months">
                           6 Months
@@ -485,26 +1446,34 @@ const Postinternship = () => {
 
                     </div>
 
+
                     <div className="form-group">
 
                       <label htmlFor="location">
                         Location
                       </label>
 
+
                       <select
                         id="location"
                         name="location"
-                        value={form.location}
-                        onChange={handleChange}
+                        value={
+                          form.location
+                        }
+                        onChange={
+                          handleChange
+                        }
                       >
 
                         <option value="Remote">
                           Remote
                         </option>
 
+
                         <option value="Onsite">
                           Onsite
                         </option>
+
 
                         <option value="Hybrid">
                           Hybrid
@@ -516,6 +1485,7 @@ const Postinternship = () => {
 
                   </div>
 
+
                   {/* Stipend */}
 
                   <div className="form-group">
@@ -524,16 +1494,22 @@ const Postinternship = () => {
                       Monthly Stipend
                     </label>
 
+
                     <input
                       id="stipend"
                       name="stipend"
                       type="text"
                       placeholder="Example: ₹10,000"
-                      value={form.stipend}
-                      onChange={handleChange}
+                      value={
+                        form.stipend
+                      }
+                      onChange={
+                        handleChange
+                      }
                     />
 
                   </div>
+
 
                   {/* Description */}
 
@@ -543,6 +1519,7 @@ const Postinternship = () => {
                       Description
                     </label>
 
+
                     <textarea
                       id="description"
                       name="description"
@@ -550,10 +1527,13 @@ const Postinternship = () => {
                       value={
                         form.description
                       }
-                      onChange={handleChange}
+                      onChange={
+                        handleChange
+                      }
                     />
 
                   </div>
+
 
                   {/* Requirements */}
 
@@ -563,6 +1543,7 @@ const Postinternship = () => {
                       Requirements
                     </label>
 
+
                     <textarea
                       id="requirements"
                       name="requirements"
@@ -570,10 +1551,13 @@ const Postinternship = () => {
                       value={
                         form.requirements
                       }
-                      onChange={handleChange}
+                      onChange={
+                        handleChange
+                      }
                     />
 
                   </div>
+
 
                   {/* Skills */}
 
@@ -583,14 +1567,20 @@ const Postinternship = () => {
                       Skills
                     </label>
 
+
                     <input
                       id="skills"
                       name="skills"
                       type="text"
                       placeholder="Java, React, Python..."
-                      value={form.skills}
-                      onChange={handleChange}
+                      value={
+                        form.skills
+                      }
+                      onChange={
+                        handleChange
+                      }
                     />
+
 
                     <small>
                       Separate skills with
@@ -599,9 +1589,11 @@ const Postinternship = () => {
 
                   </div>
 
+
                   {/* Buttons */}
 
                   <div className="form-actions">
+
 
                     <button
                       type="submit"
@@ -612,9 +1604,11 @@ const Postinternship = () => {
                         size={18}
                       />
 
+
                       Post Internship
 
                     </button>
+
 
                     <button
                       type="button"
@@ -625,7 +1619,9 @@ const Postinternship = () => {
                         )
                       }
                     >
+
                       Cancel
+
                     </button>
 
                   </div>
@@ -633,6 +1629,7 @@ const Postinternship = () => {
                 </form>
 
               </section>
+
 
               {/* =============================================
                   POSTED INTERNSHIPS
@@ -644,6 +1641,7 @@ const Postinternship = () => {
                   Posted Internships
                 </h2>
 
+
                 {internships.length ===
                 0 ? (
 
@@ -653,9 +1651,11 @@ const Postinternship = () => {
                       size={40}
                     />
 
+
                     <h3>
                       No internships posted
                     </h3>
+
 
                     <p>
                       Your posted internships
@@ -670,51 +1670,79 @@ const Postinternship = () => {
                     (item) => (
 
                       <div
-                        key={item.id}
+                        key={
+                          item.id
+                        }
                         className="posted-internship-card"
                       >
 
                         <div className="posted-internship-info">
 
                           <h3>
-                            {item.title}
+                            {
+                              item.title
+                            }
                           </h3>
+
 
                           <div className="internship-meta">
 
                             <span>
+
                               <strong>
                                 Duration:
                               </strong>{" "}
-                              {item.duration ||
-                                "N/A"}
+
+                              {
+                                item.duration ||
+                                "N/A"
+                              }
+
                             </span>
 
+
                             <span>
+
                               <strong>
                                 Location:
                               </strong>{" "}
-                              {item.location ||
-                                "N/A"}
+
+                              {
+                                item.location ||
+                                "N/A"
+                              }
+
                             </span>
 
+
                             <span>
+
                               <strong>
                                 Stipend:
                               </strong>{" "}
-                              {item.stipend ||
-                                "Not specified"}
+
+                              {
+                                item.stipend ||
+                                "Not specified"
+                              }
+
                             </span>
 
                           </div>
 
+
                           {item.description && (
+
                             <p>
-                              {item.description}
+                              {
+                                item.description
+                              }
                             </p>
+
                           )}
 
                         </div>
+
 
                         <button
                           type="button"
@@ -745,6 +1773,7 @@ const Postinternship = () => {
 
       </div>
 
+
       {/* =====================================================
           DELETE CONFIRMATION MODAL
       ===================================================== */}
@@ -753,7 +1782,9 @@ const Postinternship = () => {
 
         <div
           className="modal-overlay"
-          onClick={cancelDelete}
+          onClick={
+            cancelDelete
+          }
         >
 
           <div
@@ -767,28 +1798,41 @@ const Postinternship = () => {
               Delete Internship?
             </h3>
 
+
             <p
               style={{
-                marginTop: "10px",
-                marginBottom: "20px",
+                marginTop:
+                  "10px",
+
+                marginBottom:
+                  "20px",
               }}
             >
+
               Are you sure you want to
               delete this internship?
+
               <br />
+
               This action cannot be
               undone.
+
             </p>
 
+
             <div className="modal-actions">
+
 
               <button
                 type="button"
                 className="cancel-btn"
-                onClick={cancelDelete}
+                onClick={
+                  cancelDelete
+                }
               >
                 Cancel
               </button>
+
 
               <button
                 type="button"
@@ -799,6 +1843,7 @@ const Postinternship = () => {
               >
                 Delete
               </button>
+
 
             </div>
 
@@ -812,6 +1857,7 @@ const Postinternship = () => {
   );
 };
 
+
 /* =========================================================
    NAV BUTTON
 ========================================================= */
@@ -822,11 +1868,15 @@ function NavButton({
   label,
   onClick,
 }) {
+
   return (
+
     <button
       type="button"
       className={`sd-nav-button ${
-        active ? "active" : ""
+        active
+          ? "active"
+          : ""
       }`}
       onClick={onClick}
       aria-current={
@@ -836,7 +1886,10 @@ function NavButton({
       }
     >
 
-      <Icon size={20} />
+      <Icon
+        size={20}
+      />
+
 
       <span>
         {label}
@@ -845,5 +1898,6 @@ function NavButton({
     </button>
   );
 }
+
 
 export default Postinternship;

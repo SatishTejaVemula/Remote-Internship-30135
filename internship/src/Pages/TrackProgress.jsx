@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import Headerfordash from "../Components/Headerfordash";
 import Loader from "../Components/Loader";
+
 import "../Styles/TrackProgress.css";
+
 import toast from "react-hot-toast";
 
 import {
@@ -17,8 +20,40 @@ import {
   Upload,
 } from "lucide-react";
 
+
+/* =========================================================
+   API
+========================================================= */
+
+const API_BASE =
+  "https://remote-internship-30135.onrender.com";
+
+
+/* =========================================================
+   LOCAL STORAGE KEYS
+========================================================= */
+
+const TOKEN_KEY =
+  "token";
+
+const ADMIN_PROFILE_KEY =
+  "adminProfile";
+
+const TRACK_PROGRESS_CACHE_KEY =
+  "adminTrackProgressData";
+
+const TASKS_CACHE_KEY =
+  "adminTrackProgressTasks";
+
+
 const TrackProgress = () => {
+
   const navigate = useNavigate();
+
+
+  /* =========================================================
+     STATE
+  ========================================================= */
 
   const [approvedStudents, setApprovedStudents] =
     useState([]);
@@ -49,62 +84,550 @@ const TrackProgress = () => {
 
 
   /* =========================================================
-     INITIAL LOAD
+     ADMIN
   ========================================================= */
 
-  useEffect(() => {
-    loadData();
-  }, [selectedInternship]);
+  const getStoredAdmin = () => {
 
-
-  /* =========================================================
-     LOAD DATA
-  ========================================================= */
-
-  const loadData = async () => {
     try {
-      setLoading(true);
 
       const storedAdmin =
-        localStorage.getItem("adminProfile");
+        localStorage.getItem(
+          ADMIN_PROFILE_KEY
+        );
 
-      const admin = storedAdmin
+
+      return storedAdmin
         ? JSON.parse(storedAdmin)
         : {};
 
-      const employerId = admin?.id;
+    } catch (error) {
 
-      const token =
-        localStorage.getItem("token");
+      console.error(
+        "Failed to read admin profile:",
+        error
+      );
 
-      if (!employerId) {
-        toast.error(
-          "Employer not found. Please login again."
-        );
+      return {};
+    }
+  };
 
-        navigate("/login");
 
-        return;
+  const admin =
+    getStoredAdmin();
+
+
+  const employerId =
+    admin?.id;
+
+
+  /* =========================================================
+     LOGOUT
+  ========================================================= */
+
+  const logout = () => {
+
+    /*
+     * Clear JWT
+     */
+    localStorage.removeItem(
+      TOKEN_KEY
+    );
+
+
+    /*
+     * Clear admin profile
+     */
+    localStorage.removeItem(
+      ADMIN_PROFILE_KEY
+    );
+
+
+    /*
+     * Clear Track Progress cache
+     */
+    localStorage.removeItem(
+      TRACK_PROGRESS_CACHE_KEY
+    );
+
+
+    /*
+     * Clear task cache
+     */
+    localStorage.removeItem(
+      TASKS_CACHE_KEY
+    );
+
+
+    /*
+     * Clear dashboard cache
+     */
+    localStorage.removeItem(
+      "adminDashboardData"
+    );
+
+
+    /*
+     * Clear other auth data
+     */
+    localStorage.removeItem(
+      "user"
+    );
+
+    localStorage.removeItem(
+      "admin"
+    );
+
+
+    /*
+     * Redirect
+     */
+    navigate("/login", {
+      replace: true,
+    });
+  };
+
+
+  /* =========================================================
+     JWT EXPIRATION
+  ========================================================= */
+
+  const getTokenExpiration = () => {
+
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+
+    if (!token) {
+      return null;
+    }
+
+
+    try {
+
+      const parts =
+        token.split(".");
+
+
+      if (
+        parts.length !== 3
+      ) {
+        return null;
       }
 
 
-      /* =============================================
+      const payload =
+        JSON.parse(
+          atob(
+            parts[1]
+              .replace(/-/g, "+")
+              .replace(/_/g, "/")
+          )
+        );
+
+
+      if (!payload.exp) {
+        return null;
+      }
+
+
+      /*
+       * JWT exp is seconds.
+       * JavaScript uses milliseconds.
+       */
+      return (
+        payload.exp * 1000
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Invalid JWT:",
+        error
+      );
+
+      return null;
+    }
+  };
+
+
+  /* =========================================================
+     CHECK JWT
+  ========================================================= */
+
+  const checkTokenExpiration = () => {
+
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+
+    /*
+     * No token
+     */
+    if (!token) {
+
+      logout();
+
+      return false;
+    }
+
+
+    const expirationTime =
+      getTokenExpiration();
+
+
+    /*
+     * No exp in token
+     */
+    if (!expirationTime) {
+      return true;
+    }
+
+
+    /*
+     * Token expired
+     */
+    if (
+      Date.now() >=
+      expirationTime
+    ) {
+
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+
+      logout();
+
+
+      return false;
+    }
+
+
+    return true;
+  };
+
+
+  /* =========================================================
+     JWT AUTO LOGOUT TIMER
+  ========================================================= */
+
+  const setupTokenExpirationTimer =
+    () => {
+
+      const expirationTime =
+        getTokenExpiration();
+
+
+      if (!expirationTime) {
+        return null;
+      }
+
+
+      const remainingTime =
+        expirationTime -
+        Date.now();
+
+
+      /*
+       * Already expired
+       */
+      if (
+        remainingTime <= 0
+      ) {
+
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+
+        logout();
+
+
+        return null;
+      }
+
+
+      /*
+       * Automatically logout
+       * exactly when JWT expires.
+       */
+      const timer =
+        setTimeout(() => {
+
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+
+          logout();
+
+        }, remainingTime);
+
+
+      return timer;
+    };
+
+
+  /* =========================================================
+     SAVE MAIN TRACK PROGRESS CACHE
+     
+     Stores:
+       - applications
+       - internships
+  ========================================================= */
+
+  const saveMainCache = (
+    applicationData,
+    internshipData
+  ) => {
+
+    try {
+
+      const cacheData = {
+
+        employerId,
+
+        applications:
+          Array.isArray(
+            applicationData
+          )
+            ? applicationData
+            : [],
+
+        internships:
+          Array.isArray(
+            internshipData
+          )
+            ? internshipData
+            : [],
+
+        cachedAt:
+          Date.now(),
+      };
+
+
+      localStorage.setItem(
+        TRACK_PROGRESS_CACHE_KEY,
+        JSON.stringify(
+          cacheData
+        )
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Failed to save Track Progress cache:",
+        error
+      );
+    }
+  };
+
+
+  /* =========================================================
+     LOAD MAIN CACHE
+  ========================================================= */
+
+  const loadMainCache = () => {
+
+    try {
+
+      const cached =
+        localStorage.getItem(
+          TRACK_PROGRESS_CACHE_KEY
+        );
+
+
+      /*
+       * No cache
+       */
+      if (!cached) {
+        return null;
+      }
+
+
+      const data =
+        JSON.parse(
+          cached
+        );
+
+
+      if (!data) {
+        return null;
+      }
+
+
+      /*
+       * Make sure cache belongs
+       * to current admin.
+       */
+      if (
+        data.employerId &&
+        employerId &&
+        Number(
+          data.employerId
+        ) !==
+          Number(employerId)
+      ) {
+
+        localStorage.removeItem(
+          TRACK_PROGRESS_CACHE_KEY
+        );
+
+
+        return null;
+      }
+
+
+      return data;
+
+    } catch (error) {
+
+      console.error(
+        "Failed to read Track Progress cache:",
+        error
+      );
+
+
+      localStorage.removeItem(
+        TRACK_PROGRESS_CACHE_KEY
+      );
+
+
+      return null;
+    }
+  };
+
+
+  /* =========================================================
+     GET APPROVED STUDENTS FROM APPLICATIONS
+     
+     IMPORTANT:
+     This is local filtering.
+     No API request.
+  ========================================================= */
+
+  const getApprovedStudentsFromApplications =
+    (
+      applicationData,
+      internshipId
+    ) => {
+
+      if (
+        !internshipId
+      ) {
+        return [];
+      }
+
+
+      return applicationData.filter(
+        (app) =>
+          app.status
+            ?.toUpperCase() ===
+            "APPROVED" &&
+
+          Number(
+            app.internshipId
+          ) ===
+            Number(
+              internshipId
+            )
+      );
+    };
+
+
+  /* =========================================================
+     LOAD DATA FROM API
+     
+     ONLY CALLED WHEN CACHE DOES NOT EXIST.
+  ========================================================= */
+
+  const loadData = async () => {
+
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
+    if (!employerId) {
+
+      toast.error(
+        "Employer not found. Please login again."
+      );
+
+
+      navigate("/login");
+
+
+      return;
+    }
+
+
+    try {
+
+      setLoading(true);
+
+
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+
+      /* =====================================================
          APPLICATIONS
-      ============================================= */
+      ===================================================== */
 
       const applicationsRes =
         await fetch(
-          `https://remote-internship-30135.onrender.com/api/applications/employer/${employerId}`,
+          `${API_BASE}/api/applications/employer/${employerId}`,
           {
+            method: "GET",
+
             headers: {
               Authorization:
                 `Bearer ${token}`,
+
+              "Content-Type":
+                "application/json",
             },
           }
         );
 
 
-      if (!applicationsRes.ok) {
+      /*
+       * JWT expired
+       */
+      if (
+        applicationsRes.status === 401 ||
+        applicationsRes.status === 403
+      ) {
+
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+
+        logout();
+
+
+        return;
+      }
+
+
+      if (
+        !applicationsRes.ok
+      ) {
+
         throw new Error(
           "Failed to load applications"
         );
@@ -116,47 +639,58 @@ const TrackProgress = () => {
 
 
       const safeApplications =
-        Array.isArray(applications)
+        Array.isArray(
+          applications
+        )
           ? applications
           : [];
 
 
-      let approved = [];
-
-
-      if (selectedInternship) {
-        approved =
-          safeApplications.filter(
-            (app) =>
-              app.status === "APPROVED" &&
-              Number(app.internshipId) ===
-                Number(selectedInternship)
-          );
-      }
-
-
-      setApprovedStudents(
-        approved
-      );
-
-
-      /* =============================================
+      /* =====================================================
          INTERNSHIPS
-      ============================================= */
+      ===================================================== */
 
       const internshipsRes =
         await fetch(
-          `https://remote-internship-30135.onrender.com/api/internships/employer/${employerId}`,
+          `${API_BASE}/api/internships/employer/${employerId}`,
           {
+            method: "GET",
+
             headers: {
               Authorization:
                 `Bearer ${token}`,
+
+              "Content-Type":
+                "application/json",
             },
           }
         );
 
 
-      if (!internshipsRes.ok) {
+      /*
+       * JWT expired
+       */
+      if (
+        internshipsRes.status === 401 ||
+        internshipsRes.status === 403
+      ) {
+
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+
+        logout();
+
+
+        return;
+      }
+
+
+      if (
+        !internshipsRes.ok
+      ) {
+
         throw new Error(
           "Failed to load internships"
         );
@@ -167,66 +701,599 @@ const TrackProgress = () => {
         await internshipsRes.json();
 
 
-      setInternships(
+      const safeInternships =
         Array.isArray(
           internshipData
         )
           ? internshipData
-          : []
+          : [];
+
+
+      /* =====================================================
+         SAVE STATE
+      ===================================================== */
+
+      setInternships(
+        safeInternships
+      );
+
+
+      /*
+       * Calculate approved students
+       * locally if an internship is selected.
+       */
+      const approved =
+        getApprovedStudentsFromApplications(
+          safeApplications,
+          selectedInternship
+        );
+
+
+      setApprovedStudents(
+        approved
+      );
+
+
+      /* =====================================================
+         SAVE CACHE
+      ===================================================== */
+
+      saveMainCache(
+        safeApplications,
+        safeInternships
       );
 
     } catch (error) {
+
       console.error(
         "Track progress error:",
         error
       );
 
+
       setApprovedStudents([]);
 
       setInternships([]);
+
 
       toast.error(
         "Couldn't load progress data."
       );
 
     } finally {
+
       setLoading(false);
     }
   };
 
 
   /* =========================================================
-     LOAD STUDENT TASKS
+     INITIAL LOAD
+     
+     IMPORTANT:
+     selectedInternship is NOT a dependency.
+     
+     Therefore changing internship does NOT
+     call the API again.
   ========================================================= */
 
-  const loadTasks = async (student) => {
-    if (!student) return;
+  useEffect(() => {
 
-    try {
-      setTaskLoading(true);
-
-      const studentId =
-        student.studentId;
-
-      const internshipId =
-        Number(selectedInternship);
-
-      const token =
-        localStorage.getItem("token");
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
 
 
-      const res = await fetch(
-        `https://remote-internship-30135.onrender.com/api/tasks/student/${studentId}/internship/${internshipId}`,
-        {
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        }
+    /*
+     * Setup automatic logout.
+     */
+    const timer =
+      setupTokenExpirationTimer();
+
+
+    /*
+     * Check cache first.
+     */
+    const cached =
+      loadMainCache();
+
+
+    if (cached) {
+
+      /*
+       * Restore internships.
+       */
+      const cachedInternships =
+        Array.isArray(
+          cached.internships
+        )
+          ? cached.internships
+          : [];
+
+
+      /*
+       * Restore applications.
+       */
+      const cachedApplications =
+        Array.isArray(
+          cached.applications
+        )
+          ? cached.applications
+          : [];
+
+
+      setInternships(
+        cachedInternships
       );
 
 
+      /*
+       * Derive approved students
+       * locally.
+       */
+      const approved =
+        getApprovedStudentsFromApplications(
+          cachedApplications,
+          selectedInternship
+        );
+
+
+      setApprovedStudents(
+        approved
+      );
+
+
+      /*
+       * No API request.
+       */
+      setLoading(false);
+
+    } else {
+
+      /*
+       * No cache.
+       *
+       * Fetch ONCE.
+       */
+      loadData();
+    }
+
+
+    return () => {
+
+      if (timer) {
+        clearTimeout(timer);
+      }
+
+    };
+
+  }, []);
+
+
+  /* =========================================================
+     UPDATE APPROVED STUDENTS WHEN INTERNSHIP CHANGES
+     
+     IMPORTANT:
+     This only reads localStorage.
+     No API request.
+  ========================================================= */
+
+  useEffect(() => {
+
+    if (!selectedInternship) {
+
+      setApprovedStudents([]);
+
+      setSelectedStudent(null);
+
+      setTasksData([]);
+
+      return;
+    }
+
+
+    const cached =
+      loadMainCache();
+
+
+    if (!cached) {
+      return;
+    }
+
+
+    const cachedApplications =
+      Array.isArray(
+        cached.applications
+      )
+        ? cached.applications
+        : [];
+
+
+    const approved =
+      getApprovedStudentsFromApplications(
+        cachedApplications,
+        selectedInternship
+      );
+
+
+    setApprovedStudents(
+      approved
+    );
+
+
+    /*
+     * Clear selected student
+     * when internship changes.
+     */
+    setSelectedStudent(null);
+
+
+    /*
+     * Clear currently displayed tasks.
+     */
+    setTasksData([]);
+
+  }, [selectedInternship]);
+
+
+  /* =========================================================
+     CHECK JWT WHEN RETURNING TO TAB
+     
+     IMPORTANT:
+     Does NOT fetch anything.
+  ========================================================= */
+
+  useEffect(() => {
+
+    const handleVisibilityChange =
+      () => {
+
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+
+          /*
+           * Only check JWT.
+           *
+           * NO loadData()
+           */
+          checkTokenExpiration();
+        }
+      };
+
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+
+    return () => {
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+
+    };
+
+  }, []);
+
+
+  /* =========================================================
+     TASK CACHE KEY
+  ========================================================= */
+
+  const getTaskCacheKey = (
+    studentId,
+    internshipId
+  ) => {
+
+    return `${studentId}_${internshipId}`;
+  };
+
+
+  /* =========================================================
+     LOAD ALL TASK CACHES
+  ========================================================= */
+
+  const getAllTaskCaches = () => {
+
+    try {
+
+      const cached =
+        localStorage.getItem(
+          TASKS_CACHE_KEY
+        );
+
+
+      if (!cached) {
+        return {};
+      }
+
+
+      const data =
+        JSON.parse(
+          cached
+        );
+
+
+      return data &&
+        typeof data ===
+          "object"
+        ? data
+        : {};
+
+    } catch (error) {
+
+      console.error(
+        "Task cache read error:",
+        error
+      );
+
+
+      return {};
+    }
+  };
+
+
+  /* =========================================================
+     SAVE TASK CACHE
+  ========================================================= */
+
+  const saveTaskCache = (
+    studentId,
+    internshipId,
+    taskData
+  ) => {
+
+    try {
+
+      const allCaches =
+        getAllTaskCaches();
+
+
+      const key =
+        getTaskCacheKey(
+          studentId,
+          internshipId
+        );
+
+
+      allCaches[key] = {
+
+        studentId,
+
+        internshipId,
+
+        tasks:
+          Array.isArray(
+            taskData
+          )
+            ? taskData
+            : [],
+
+        cachedAt:
+          Date.now(),
+      };
+
+
+      localStorage.setItem(
+        TASKS_CACHE_KEY,
+        JSON.stringify(
+          allCaches
+        )
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Failed to save task cache:",
+        error
+      );
+    }
+  };
+
+
+  /* =========================================================
+     LOAD TASKS FROM CACHE
+  ========================================================= */
+
+  const loadCachedTasks = (
+    studentId,
+    internshipId
+  ) => {
+
+    try {
+
+      const allCaches =
+        getAllTaskCaches();
+
+
+      const key =
+        getTaskCacheKey(
+          studentId,
+          internshipId
+        );
+
+
+      const cached =
+        allCaches[key];
+
+
+      if (!cached) {
+        return null;
+      }
+
+
+      const safeTasks =
+        Array.isArray(
+          cached.tasks
+        )
+          ? cached.tasks
+          : [];
+
+
+      return safeTasks;
+
+    } catch (error) {
+
+      console.error(
+        "Failed to load cached tasks:",
+        error
+      );
+
+
+      return null;
+    }
+  };
+
+
+  /* =========================================================
+     LOAD STUDENT TASKS
+     
+     CACHE FIRST.
+  ========================================================= */
+
+  const loadTasks = async (
+    student
+  ) => {
+
+    if (!student) {
+      return;
+    }
+
+
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
+    const studentId =
+      student.studentId;
+
+
+    const internshipId =
+      Number(
+        selectedInternship
+      );
+
+
+    if (
+      !studentId ||
+      !internshipId
+    ) {
+      return;
+    }
+
+
+    /* =====================================================
+       CHECK CACHE
+    ===================================================== */
+
+    const cachedTasks =
+      loadCachedTasks(
+        studentId,
+        internshipId
+      );
+
+
+    if (
+      cachedTasks !== null
+    ) {
+
+      /*
+       * CACHE EXISTS.
+       *
+       * No API request.
+       */
+      const sortedTasks =
+        [...cachedTasks].sort(
+          (a, b) =>
+            Number(b.id) -
+            Number(a.id)
+        );
+
+
+      setTasksData(
+        sortedTasks
+      );
+
+
+      setTaskLoading(
+        false
+      );
+
+
+      return;
+    }
+
+
+    /* =====================================================
+       NO CACHE → API
+    ===================================================== */
+
+    try {
+
+      setTaskLoading(true);
+
+
+      const token =
+        localStorage.getItem(
+          TOKEN_KEY
+        );
+
+
+      const res =
+        await fetch(
+          `${API_BASE}/api/tasks/student/${studentId}/internship/${internshipId}`,
+          {
+            method: "GET",
+
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+
+              "Content-Type":
+                "application/json",
+            },
+          }
+        );
+
+
+      /*
+       * JWT expired
+       */
+      if (
+        res.status === 401 ||
+        res.status === 403
+      ) {
+
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+
+        logout();
+
+
+        return;
+      }
+
+
       if (!res.ok) {
+
         throw new Error(
           "Failed to load tasks"
         );
@@ -243,6 +1310,9 @@ const TrackProgress = () => {
           : [];
 
 
+      /*
+       * Sort newest first.
+       */
       safeData.sort(
         (a, b) =>
           Number(b.id) -
@@ -250,19 +1320,37 @@ const TrackProgress = () => {
       );
 
 
+      /*
+       * Update state.
+       */
       setTasksData(
         safeData
       );
 
+
+      /*
+       * IMPORTANT:
+       * Save task data in cache.
+       */
+      saveTaskCache(
+        studentId,
+        internshipId,
+        safeData
+      );
+
     } catch (error) {
+
       console.error(
         "Task loading error:",
         error
       );
 
+
       setTasksData([]);
 
+
     } finally {
+
       setTaskLoading(false);
     }
   };
@@ -273,10 +1361,12 @@ const TrackProgress = () => {
   ========================================================= */
 
   const getProgress = () => {
+
     if (
       !tasksData ||
       tasksData.length === 0
     ) {
+
       return 0;
     }
 
@@ -295,7 +1385,9 @@ const TrackProgress = () => {
 
 
     return Math.round(
-      (completed / total) * 100
+      (completed /
+        total) *
+        100
     );
   };
 
@@ -304,82 +1396,181 @@ const TrackProgress = () => {
      ADD TASK
   ========================================================= */
 
-  const handleAddTask = async (e) => {
+  const handleAddTask = async (
+    e
+  ) => {
+
     e.preventDefault();
 
+
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+
     if (!selectedStudent) {
-      toast("Please select a student first.", {
-        icon: "⚠️",
-      });
+
+      toast(
+        "Please select a student first.",
+        {
+          icon: "⚠️",
+        }
+      );
+
 
       return;
     }
 
 
     if (!selectedInternship) {
-      toast("Please select an internship first.", {
-        icon: "⚠️",
-      });
+
+      toast(
+        "Please select an internship first.",
+        {
+          icon: "⚠️",
+        }
+      );
+
 
       return;
     }
 
 
     if (!newTask.trim()) {
-      toast("Please enter a task!", {
-        icon: "⚠️",
-      });
+
+      toast(
+        "Please enter a task!",
+        {
+          icon: "⚠️",
+        }
+      );
+
 
       return;
     }
 
 
     try {
+
       const token =
-        localStorage.getItem("token");
+        localStorage.getItem(
+          TOKEN_KEY
+        );
 
 
-      const res = await fetch(
-        "https://remote-internship-30135.onrender.com/api/tasks",
-        {
-          method: "POST",
+      const res =
+        await fetch(
+          `${API_BASE}/api/tasks`,
+          {
+            method: "POST",
 
-          headers: {
-            "Content-Type":
-              "application/json",
+            headers: {
 
-            Authorization:
-              `Bearer ${token}`,
-          },
+              "Content-Type":
+                "application/json",
 
-          body: JSON.stringify({
-            studentId:
-              selectedStudent.studentId,
+              Authorization:
+                `Bearer ${token}`,
+            },
 
-            internshipId:
-              Number(
-                selectedInternship
-              ),
+            body:
+              JSON.stringify({
 
-            title:
-              newTask.trim(),
+                studentId:
+                  selectedStudent.studentId,
 
-            description:
-              newTask.trim(),
-          }),
-        }
-      );
+                internshipId:
+                  Number(
+                    selectedInternship
+                  ),
+
+                title:
+                  newTask.trim(),
+
+                description:
+                  newTask.trim(),
+              }),
+          }
+        );
+
+
+      /*
+       * JWT expired
+       */
+      if (
+        res.status === 401 ||
+        res.status === 403
+      ) {
+
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+
+        logout();
+
+
+        return;
+      }
 
 
       if (!res.ok) {
+
         const errorText =
           await res.text();
+
 
         throw new Error(
           errorText ||
             "Failed to assign task"
         );
       }
+
+
+      const createdTask =
+        await res.json();
+
+
+      /*
+       * Add new task to current state.
+       */
+      const updatedTasks = [
+        createdTask,
+        ...tasksData,
+      ];
+
+
+      /*
+       * Sort newest first.
+       */
+      updatedTasks.sort(
+        (a, b) =>
+          Number(b.id) -
+          Number(a.id)
+      );
+
+
+      setTasksData(
+        updatedTasks
+      );
+
+
+      /*
+       * IMPORTANT:
+       * Update task cache immediately.
+       */
+      saveTaskCache(
+        selectedStudent.studentId,
+        Number(
+          selectedInternship
+        ),
+        updatedTasks
+      );
 
 
       toast.success(
@@ -389,62 +1580,84 @@ const TrackProgress = () => {
 
       setNewTask("");
 
-      setSelectedFile(null);
-
-
-      loadTasks(
-        selectedStudent
+      setSelectedFile(
+        null
       );
 
     } catch (error) {
+
       console.error(
         "Task assignment error:",
         error
       );
 
-      toast("Error assigning task.", {
-        icon: "⚠️",
-      });
+
+      toast(
+        "Error assigning task.",
+        {
+          icon: "⚠️",
+        }
+      );
     }
   };
 
 
   /* =========================================================
      SELECT INTERNSHIP
+     
+     IMPORTANT:
+     No API request.
   ========================================================= */
 
   const handleInternshipChange = (
     e
   ) => {
+
     const value =
       e.target.value;
+
 
     setSelectedInternship(
       value
     );
 
+
     setSelectedStudent(
       null
     );
 
-    setTasksData([]);
+
+    setTasksData(
+      []
+    );
   };
 
 
   /* =========================================================
      SELECT STUDENT
+     
+     Task API is called only if
+     that student's tasks aren't cached.
   ========================================================= */
 
   const handleStudentClick = (
     student
   ) => {
+
     if (
       selectedStudent?.id ===
       student.id
     ) {
-      setSelectedStudent(null);
 
-      setTasksData([]);
+      setSelectedStudent(
+        null
+      );
+
+
+      setTasksData(
+        []
+      );
+
 
       return;
     }
@@ -454,7 +1667,10 @@ const TrackProgress = () => {
       student
     );
 
-    loadTasks(student);
+
+    loadTasks(
+      student
+    );
   };
 
 
@@ -468,24 +1684,35 @@ const TrackProgress = () => {
     label,
     onClick,
   }) => {
+
     return (
+
       <button
         type="button"
         className={`sd-nav-button ${
-          active ? "active" : ""
+          active
+            ? "active"
+            : ""
         }`}
-        onClick={onClick}
+        onClick={
+          onClick
+        }
         aria-current={
           active
             ? "page"
             : undefined
         }
       >
-        <Icon size={20} />
+
+        <Icon
+          size={20}
+        />
+
 
         <span>
           {label}
         </span>
+
       </button>
     );
   };
@@ -499,12 +1726,23 @@ const TrackProgress = () => {
     <>
 
       <div className="admin-layout">
+
+
+        {/* ===================================================
+            SIDEBAR
+        =================================================== */}
+
         <aside className="sd-sidebar">
 
           <nav className="sd-nav">
 
+
+            {/* Dashboard */}
+
             <NavButton
-              icon={LayoutDashboard}
+              icon={
+                LayoutDashboard
+              }
               label="Dashboard"
               onClick={() =>
                 navigate(
@@ -514,8 +1752,12 @@ const TrackProgress = () => {
             />
 
 
+            {/* Post Internship */}
+
             <NavButton
-              icon={FileText}
+              icon={
+                FileText
+              }
               label="Post Internship"
               onClick={() =>
                 navigate(
@@ -525,8 +1767,12 @@ const TrackProgress = () => {
             />
 
 
+            {/* Applications */}
+
             <NavButton
-              icon={Users}
+              icon={
+                Users
+              }
               label="Applications"
               onClick={() =>
                 navigate(
@@ -536,9 +1782,13 @@ const TrackProgress = () => {
             />
 
 
+            {/* Track Progress */}
+
             <NavButton
               active
-              icon={TrendingUp}
+              icon={
+                TrendingUp
+              }
               label="Track Progress"
               onClick={() =>
                 navigate(
@@ -548,8 +1798,12 @@ const TrackProgress = () => {
             />
 
 
+            {/* Evaluations */}
+
             <NavButton
-              icon={ClipboardCheck}
+              icon={
+                ClipboardCheck
+              }
               label="Evaluations"
               onClick={() =>
                 navigate(
@@ -559,8 +1813,12 @@ const TrackProgress = () => {
             />
 
 
+            {/* Profile */}
+
             <NavButton
-              icon={User}
+              icon={
+                User
+              }
               label="Profile"
               onClick={() =>
                 navigate(
@@ -572,7 +1830,14 @@ const TrackProgress = () => {
           </nav>
 
         </aside>
+
+
+        {/* ===================================================
+            MAIN
+        =================================================== */}
+
         <main className="sd-main">
+
 
           {loading ? (
 
@@ -581,6 +1846,7 @@ const TrackProgress = () => {
           ) : (
 
             <>
+
 
               {/* =============================================
                   HEADER
@@ -591,6 +1857,7 @@ const TrackProgress = () => {
                 <h1>
                   Track Progress
                 </h1>
+
 
                 <p>
                   Select an internship,
@@ -610,21 +1877,27 @@ const TrackProgress = () => {
                 <div className="tp-select-header">
 
                   <div className="tp-select-icon">
+
                     <FileText
                       size={20}
                     />
+
                   </div>
 
+
                   <div>
+
                     <h2>
                       Select Internship
                     </h2>
+
 
                     <p>
                       Choose an internship
                       to view approved
                       students.
                     </p>
+
                   </div>
 
                 </div>
@@ -644,8 +1917,10 @@ const TrackProgress = () => {
                     Select Internship
                   </option>
 
+
                   {internships.map(
                     (internship) => (
+
                       <option
                         key={
                           internship.id
@@ -654,8 +1929,13 @@ const TrackProgress = () => {
                           internship.id
                         }
                       >
-                        {internship.title}
+
+                        {
+                          internship.title
+                        }
+
                       </option>
+
                     )
                   )}
 
@@ -678,9 +1958,11 @@ const TrackProgress = () => {
                       size={40}
                     />
 
+
                     <h3>
                       Select an internship
                     </h3>
+
 
                     <p>
                       Please select an
@@ -711,6 +1993,7 @@ const TrackProgress = () => {
                         Approved Students
                       </h2>
 
+
                       <p>
                         Select a student to
                         view their progress.
@@ -718,8 +2001,13 @@ const TrackProgress = () => {
 
                     </div>
 
+
                     <span className="tp-count">
-                      {approvedStudents.length}
+
+                      {
+                        approvedStudents.length
+                      }
+
                     </span>
 
                   </div>
@@ -736,9 +2024,11 @@ const TrackProgress = () => {
                           size={40}
                         />
 
+
                         <h3>
                           No approved students
                         </h3>
+
 
                         <p>
                           There are no approved
@@ -761,7 +2051,9 @@ const TrackProgress = () => {
                             selectedStudent?.id ===
                             student.id;
 
+
                           return (
+
                             <div
                               key={
                                 student.id
@@ -779,37 +2071,50 @@ const TrackProgress = () => {
                             >
 
                               <div className="tp-student-icon">
+
                                 <User
                                   size={22}
                                 />
+
                               </div>
 
 
                               <div className="tp-student-info">
 
                                 <h3>
-                                  {student.fullName ||
-                                    "Student"}
+
+                                  {
+                                    student.fullName ||
+                                    "Student"
+                                  }
+
                                 </h3>
 
+
                                 <p>
+
                                   {isSelected
                                     ? `${getProgress()}% Completed`
                                     : "Click to view progress"}
+
                                 </p>
 
                               </div>
 
 
                               {isSelected && (
+
                                 <CheckCircle
                                   className="tp-selected-icon"
                                   size={20}
                                 />
+
                               )}
 
                             </div>
+
                           );
+
                         }
                       )}
 
@@ -830,25 +2135,38 @@ const TrackProgress = () => {
 
                 <section className="tp-progress-section">
 
+
                   <div className="tp-progress-header">
 
                     <div>
 
                       <h2>
-                        {selectedStudent.fullName}
+                        {
+                          selectedStudent.fullName
+                        }
                       </h2>
 
+
                       <p>
-                        {selectedStudent
-                          .internship
-                          ?.title ||
-                          "Internship Progress"}
+
+                        {
+                          selectedStudent
+                            .internship
+                            ?.title ||
+                          "Internship Progress"
+                        }
+
                       </p>
 
                     </div>
 
+
                     <div className="tp-progress-value">
-                      {getProgress()}%
+
+                      {
+                        getProgress()
+                      }%
+
                     </div>
 
                   </div>
@@ -880,6 +2198,7 @@ const TrackProgress = () => {
                     <h3>
                       Assign New Task
                     </h3>
+
 
                     <p>
                       Create a task for this
@@ -916,23 +2235,29 @@ const TrackProgress = () => {
                           e.preventDefault()
                         }
                         onDrop={(e) => {
+
                           e.preventDefault();
+
 
                           const file =
                             e.dataTransfer
                               .files[0];
 
+
                           if (file) {
+
                             setSelectedFile(
                               file
                             );
                           }
+
                         }}
                       >
 
                         <Upload
                           size={28}
                         />
+
 
                         <p>
                           Drag & Drop a file
@@ -953,17 +2278,24 @@ const TrackProgress = () => {
 
 
                         {selectedFile && (
+
                           <div className="selected-file">
 
                             <CheckCircle
                               size={16}
                             />
 
+
                             <span>
-                              {selectedFile.name}
+
+                              {
+                                selectedFile.name
+                              }
+
                             </span>
 
                           </div>
+
                         )}
 
                       </div>
@@ -973,11 +2305,14 @@ const TrackProgress = () => {
                         type="submit"
                         className="assign-btn"
                       >
+
                         <ClipboardList
                           size={18}
                         />
 
+
                         Assign Task
+
                       </button>
 
                     </form>
@@ -999,6 +2334,7 @@ const TrackProgress = () => {
                           Assigned Tasks
                         </h3>
 
+
                         <p>
                           Track the student's
                           submitted work.
@@ -1006,8 +2342,13 @@ const TrackProgress = () => {
 
                       </div>
 
+
                       <span>
-                        {tasksData.length}
+
+                        {
+                          tasksData.length
+                        }
+
                       </span>
 
                     </div>
@@ -1026,9 +2367,11 @@ const TrackProgress = () => {
                           size={36}
                         />
 
+
                         <h4>
                           No tasks assigned yet
                         </h4>
+
 
                         <p>
                           Assign a task above
@@ -1043,7 +2386,9 @@ const TrackProgress = () => {
                         (task) => (
 
                           <div
-                            key={task.id}
+                            key={
+                              task.id
+                            }
                             className="tp-task-card"
                           >
 
@@ -1052,17 +2397,28 @@ const TrackProgress = () => {
                               <div>
 
                                 <h4>
-                                  {task.title}
+                                  {
+                                    task.title
+                                  }
                                 </h4>
 
+
                                 <p>
+
                                   Status:{" "}
+
                                   <strong>
-                                    {task.status}
+
+                                    {
+                                      task.status
+                                    }
+
                                   </strong>
+
                                 </p>
 
                               </div>
+
 
                               <span
                                 className={`task-status ${
@@ -1074,8 +2430,12 @@ const TrackProgress = () => {
                                     )
                                 }`}
                               >
-                                {task.status ||
-                                  "Pending"}
+
+                                {
+                                  task.status ||
+                                  "Pending"
+                                }
+
                               </span>
 
                             </div>
@@ -1091,6 +2451,7 @@ const TrackProgress = () => {
 
                               <div className="task-submission">
 
+
                                 {task.submissionDescription && (
 
                                   <div className="submission-item">
@@ -1099,10 +2460,13 @@ const TrackProgress = () => {
                                       Student Description
                                     </strong>
 
+
                                     <p>
+
                                       {
                                         task.submissionDescription
                                       }
+
                                     </p>
 
                                   </div>
@@ -1113,7 +2477,7 @@ const TrackProgress = () => {
                                 {task.submissionFileName && (
 
                                   <a
-                                    href={`https://remote-internship-30135.onrender.com/api/tasks/file/${task.id}`}
+                                    href={`${API_BASE}/api/tasks/file/${task.id}`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="task-file-link"
@@ -1123,14 +2487,18 @@ const TrackProgress = () => {
                                       size={16}
                                     />
 
+
                                     View Uploaded File
 
+
                                     <span>
+
                                       (
                                       {
                                         task.submissionFileName
                                       }
                                       )
+
                                     </span>
 
                                   </a>
@@ -1144,6 +2512,7 @@ const TrackProgress = () => {
                           </div>
 
                         )
+
                       )
 
                     )}
@@ -1155,13 +2524,16 @@ const TrackProgress = () => {
               )}
 
             </>
+
           )}
 
         </main>
 
       </div>
+
     </>
   );
 };
+
 
 export default TrackProgress;

@@ -13,6 +13,24 @@ import {
   User,
 } from "lucide-react";
 
+const API_BASE =
+  "https://remote-internship-30135.onrender.com";
+
+const TOKEN_KEY = "token";
+const ADMIN_PROFILE_KEY = "adminProfile";
+
+const INTERNSHIPS_CACHE_KEY =
+  "adminEvaluationsInternships";
+
+const STUDENTS_CACHE_KEY =
+  "adminEvaluationsStudents";
+
+const TASKS_CACHE_KEY =
+  "adminEvaluationsTasks";
+
+const EVALUATIONS_CACHE_KEY =
+  "adminEvaluationsData";
+
 const Evaluations = () => {
   const navigate = useNavigate();
 
@@ -44,16 +62,337 @@ const Evaluations = () => {
   const [loadingTasks, setLoadingTasks] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const token = localStorage.getItem("token");
+  const getAdmin = () => {
+    try {
+      return JSON.parse(
+        localStorage.getItem(ADMIN_PROFILE_KEY) || "{}"
+      );
+    } catch (error) {
+      console.error("Admin profile error:", error);
+      return {};
+    }
+  };
 
-  const admin = JSON.parse(
-    localStorage.getItem("adminProfile") || "{}"
-  );
-
+  const admin = getAdmin();
   const employerId = admin?.id;
 
   /* =========================================================
+     LOGOUT
+  ========================================================= */
+
+  const logout = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(ADMIN_PROFILE_KEY);
+
+    localStorage.removeItem(INTERNSHIPS_CACHE_KEY);
+    localStorage.removeItem(STUDENTS_CACHE_KEY);
+    localStorage.removeItem(TASKS_CACHE_KEY);
+    localStorage.removeItem(EVALUATIONS_CACHE_KEY);
+
+    localStorage.removeItem("adminDashboardData");
+    localStorage.removeItem("user");
+    localStorage.removeItem("admin");
+
+    navigate("/login", { replace: true });
+  };
+
+  /* =========================================================
+     JWT EXPIRATION
+  ========================================================= */
+
+  const getTokenExpiration = () => {
+    const token = localStorage.getItem(TOKEN_KEY);
+
+    if (!token) return null;
+
+    try {
+      const parts = token.split(".");
+
+      if (parts.length !== 3) return null;
+
+      const payload = JSON.parse(
+        atob(
+          parts[1]
+            .replace(/-/g, "+")
+            .replace(/_/g, "/")
+        )
+      );
+
+      return payload?.exp
+        ? payload.exp * 1000
+        : null;
+    } catch (error) {
+      console.error("Invalid JWT:", error);
+      return null;
+    }
+  };
+
+  const checkTokenExpiration = () => {
+    const token = localStorage.getItem(TOKEN_KEY);
+
+    if (!token) {
+      logout();
+      return false;
+    }
+
+    const expirationTime = getTokenExpiration();
+
+    if (!expirationTime) {
+      return true;
+    }
+
+    if (Date.now() >= expirationTime) {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+      return false;
+    }
+
+    return true;
+  };
+
+  const setupTokenExpirationTimer = () => {
+    const expirationTime = getTokenExpiration();
+
+    if (!expirationTime) return null;
+
+    const remainingTime = expirationTime - Date.now();
+
+    if (remainingTime <= 0) {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+      return null;
+    }
+
+    return setTimeout(() => {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+    }, remainingTime);
+  };
+
+  /* =========================================================
+     AUTHORIZED FETCH
+
+     Every API request uses the current token instead of
+     the token captured when the component first rendered.
+  ========================================================= */
+
+  const authorizedFetch = async (url, options = {}) => {
+    if (!checkTokenExpiration()) {
+      return null;
+    }
+
+    const currentToken =
+      localStorage.getItem(TOKEN_KEY);
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Authorization: `Bearer ${currentToken}`,
+      },
+    });
+
+    if (
+      response.status === 401 ||
+      response.status === 403
+    ) {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+      return null;
+    }
+
+    return response;
+  };
+
+  /* =========================================================
+     CACHE HELPERS
+  ========================================================= */
+
+  const readCache = (key, fallback = null) => {
+    try {
+      const value = localStorage.getItem(key);
+
+      if (!value) return fallback;
+
+      return JSON.parse(value);
+    } catch (error) {
+      console.error(`Cache read error: ${key}`, error);
+      return fallback;
+    }
+  };
+
+  const writeCache = (key, value) => {
+    try {
+      localStorage.setItem(
+        key,
+        JSON.stringify(value)
+      );
+    } catch (error) {
+      console.error(`Cache write error: ${key}`, error);
+    }
+  };
+
+  /* =========================================================
+     INTERNSHIPS CACHE
+  ========================================================= */
+
+  const loadCachedInternships = () => {
+    const cached = readCache(
+      INTERNSHIPS_CACHE_KEY,
+      null
+    );
+
+    if (!cached) return null;
+
+    if (
+      cached.employerId &&
+      employerId &&
+      Number(cached.employerId) !== Number(employerId)
+    ) {
+      localStorage.removeItem(
+        INTERNSHIPS_CACHE_KEY
+      );
+      return null;
+    }
+
+    return Array.isArray(cached.internships)
+      ? cached.internships
+      : [];
+  };
+
+  const saveInternshipsCache = (data) => {
+    writeCache(INTERNSHIPS_CACHE_KEY, {
+      employerId,
+      internships: Array.isArray(data) ? data : [],
+      cachedAt: Date.now(),
+    });
+  };
+
+  /* =========================================================
+     STUDENTS CACHE
+
+     One cache entry per internship.
+  ========================================================= */
+
+  const getStudentsCaches = () =>
+    readCache(STUDENTS_CACHE_KEY, {});
+
+  const loadCachedStudents = (internshipId) => {
+    const caches = getStudentsCaches();
+    const key = String(internshipId);
+    const cached = caches[key];
+
+    if (!cached) return null;
+
+    return Array.isArray(cached.students)
+      ? cached.students
+      : [];
+  };
+
+  const saveStudentsCache = (
+    internshipId,
+    data
+  ) => {
+    const caches = getStudentsCaches();
+
+    caches[String(internshipId)] = {
+      employerId,
+      internshipId,
+      students: Array.isArray(data) ? data : [],
+      cachedAt: Date.now(),
+    };
+
+    writeCache(STUDENTS_CACHE_KEY, caches);
+  };
+
+  /* =========================================================
+     TASKS CACHE
+
+     One cache entry per student.
+  ========================================================= */
+
+  const getTasksCaches = () =>
+    readCache(TASKS_CACHE_KEY, {});
+
+  const loadCachedTasks = (studentId) => {
+    const caches = getTasksCaches();
+    const key = String(studentId);
+    const cached = caches[key];
+
+    if (!cached) return null;
+
+    return Array.isArray(cached.tasks)
+      ? cached.tasks
+      : [];
+  };
+
+  const saveTasksCache = (
+    studentId,
+    data
+  ) => {
+    const caches = getTasksCaches();
+
+    caches[String(studentId)] = {
+      studentId,
+      tasks: Array.isArray(data) ? data : [],
+      cachedAt: Date.now(),
+    };
+
+    writeCache(TASKS_CACHE_KEY, caches);
+  };
+
+  /* =========================================================
+     EVALUATIONS CACHE
+  ========================================================= */
+
+  const loadCachedEvaluations = () => {
+    const cached = readCache(
+      EVALUATIONS_CACHE_KEY,
+      null
+    );
+
+    if (!cached) return null;
+
+    if (
+      cached.employerId &&
+      employerId &&
+      Number(cached.employerId) !== Number(employerId)
+    ) {
+      localStorage.removeItem(
+        EVALUATIONS_CACHE_KEY
+      );
+      return null;
+    }
+
+    return Array.isArray(cached.evaluations)
+      ? cached.evaluations
+      : [];
+  };
+
+  const saveEvaluationsCache = (data) => {
+    writeCache(EVALUATIONS_CACHE_KEY, {
+      employerId,
+      evaluations: Array.isArray(data) ? data : [],
+      cachedAt: Date.now(),
+    });
+  };
+
+  /* =========================================================
      LOAD INTERNSHIPS
+
+     API is called only when internships are not cached.
   ========================================================= */
 
   useEffect(() => {
@@ -62,42 +401,127 @@ const Evaluations = () => {
       return;
     }
 
-    const loadInternships = async () => {
-      try {
-        setLoading(true);
+    if (!checkTokenExpiration()) return;
 
-        const response = await fetch(
-          `https://remote-internship-30135.onrender.com/api/internships/employer/${employerId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+    const timer = setupTokenExpirationTimer();
+
+    const cachedInternships =
+      loadCachedInternships();
+
+    if (cachedInternships !== null) {
+      setInternships(cachedInternships);
+      setLoading(false);
+    } else {
+      const loadInternships = async () => {
+        try {
+          setLoading(true);
+
+          const response = await authorizedFetch(
+            `${API_BASE}/api/internships/employer/${employerId}`
+          );
+
+          if (!response) return;
+
+          if (!response.ok) {
+            throw new Error(
+              "Failed to load internships"
+            );
           }
+
+          const data = await response.json();
+
+          const safeData = Array.isArray(data)
+            ? data
+            : [];
+
+          setInternships(safeData);
+          saveInternshipsCache(safeData);
+        } catch (error) {
+          console.error(
+            "Internship loading error:",
+            error
+          );
+
+          toast.error(
+            "Couldn't load internships."
+          );
+
+          setInternships([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadInternships();
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [employerId]);
+
+  /* =========================================================
+     LOAD EXISTING EVALUATIONS
+
+     API is called only once when cache doesn't exist.
+  ========================================================= */
+
+  useEffect(() => {
+    if (!employerId) {
+      setEvaluations([]);
+      return;
+    }
+
+    if (!checkTokenExpiration()) return;
+
+    const cachedEvaluations =
+      loadCachedEvaluations();
+
+    if (cachedEvaluations !== null) {
+      setEvaluations(cachedEvaluations);
+      return;
+    }
+
+    const loadEvaluations = async () => {
+      try {
+        const response = await authorizedFetch(
+          `${API_BASE}/api/evaluations/employer/${employerId}`
         );
 
+        if (!response) return;
+
         if (!response.ok) {
-          throw new Error("Failed to load internships");
+          throw new Error(
+            "Failed to load evaluations"
+          );
         }
 
         const data = await response.json();
 
-        setInternships(Array.isArray(data) ? data : []);
+        const safeData = Array.isArray(data)
+          ? data
+          : [];
+
+        setEvaluations(safeData);
+        saveEvaluationsCache(safeData);
       } catch (error) {
-        console.error("Internship loading error:", error);
+        console.error(
+          "Evaluation loading error:",
+          error
+        );
 
-        toast.error("Couldn't load internships.");
-
-        setInternships([]);
-      } finally {
-        setLoading(false);
+        setEvaluations([]);
       }
     };
 
-    loadInternships();
-  }, [employerId, token]);
+    loadEvaluations();
+  }, [employerId]);
 
   /* =========================================================
      LOAD STUDENTS
+
+     Changing internship now checks cache first.
+     It does NOT refetch if students are already cached.
   ========================================================= */
 
   useEffect(() => {
@@ -111,21 +535,31 @@ const Evaluations = () => {
       return;
     }
 
+    if (!checkTokenExpiration()) return;
+
+    const cachedStudents =
+      loadCachedStudents(selectedInternship);
+
+    if (cachedStudents !== null) {
+      setStudents(cachedStudents);
+      setLoadingStudents(false);
+      return;
+    }
+
     const loadStudents = async () => {
       try {
         setLoadingStudents(true);
 
-        const response = await fetch(
-          `https://remote-internship-30135.onrender.com/api/applications/internship/${selectedInternship}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        const response = await authorizedFetch(
+          `${API_BASE}/api/applications/internship/${selectedInternship}`
         );
 
+        if (!response) return;
+
         if (!response.ok) {
-          throw new Error("Failed to load students");
+          throw new Error(
+            "Failed to load students"
+          );
         }
 
         const data = await response.json();
@@ -133,15 +567,25 @@ const Evaluations = () => {
         const approvedStudents = Array.isArray(data)
           ? data.filter(
               (application) =>
-                application.status?.toUpperCase() === "APPROVED"
+                application.status?.toUpperCase() ===
+                "APPROVED"
             )
           : [];
 
         setStudents(approvedStudents);
+        saveStudentsCache(
+          selectedInternship,
+          approvedStudents
+        );
       } catch (error) {
-        console.error("Student loading error:", error);
+        console.error(
+          "Student loading error:",
+          error
+        );
 
-        toast.error("Couldn't load students.");
+        toast.error(
+          "Couldn't load students."
+        );
 
         setStudents([]);
       } finally {
@@ -150,10 +594,12 @@ const Evaluations = () => {
     };
 
     loadStudents();
-  }, [selectedInternship, token]);
+  }, [selectedInternship]);
 
   /* =========================================================
      LOAD TASKS
+
+     Changing student now checks cache first.
   ========================================================= */
 
   useEffect(() => {
@@ -164,30 +610,53 @@ const Evaluations = () => {
       return;
     }
 
+    if (!checkTokenExpiration()) return;
+
+    const cachedTasks =
+      loadCachedTasks(selectedStudent);
+
+    if (cachedTasks !== null) {
+      setTasks(cachedTasks);
+      setLoadingTasks(false);
+      return;
+    }
+
     const loadTasks = async () => {
       try {
         setLoadingTasks(true);
 
-        const response = await fetch(
-          `https://remote-internship-30135.onrender.com/api/tasks/student/${selectedStudent}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        const response = await authorizedFetch(
+          `${API_BASE}/api/tasks/student/${selectedStudent}`
         );
 
+        if (!response) return;
+
         if (!response.ok) {
-          throw new Error("Failed to load tasks");
+          throw new Error(
+            "Failed to load tasks"
+          );
         }
 
         const data = await response.json();
 
-        setTasks(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Task loading error:", error);
+        const safeData = Array.isArray(data)
+          ? data
+          : [];
 
-        toast.error("Couldn't load tasks.");
+        setTasks(safeData);
+        saveTasksCache(
+          selectedStudent,
+          safeData
+        );
+      } catch (error) {
+        console.error(
+          "Task loading error:",
+          error
+        );
+
+        toast.error(
+          "Couldn't load tasks."
+        );
 
         setTasks([]);
       } finally {
@@ -196,45 +665,37 @@ const Evaluations = () => {
     };
 
     loadTasks();
-  }, [selectedStudent, token]);
+  }, [selectedStudent]);
 
   /* =========================================================
-     LOAD EXISTING EVALUATIONS
+     CHECK JWT WHEN RETURNING TO TAB
+
+     IMPORTANT:
+     This only checks the JWT.
+     It does NOT refetch anything.
   ========================================================= */
 
   useEffect(() => {
-    if (!employerId) {
-      setEvaluations([]);
-      return;
-    }
-
-    const loadEvaluations = async () => {
-      try {
-        const response = await fetch(
-          `https://remote-internship-30135.onrender.com/api/evaluations/employer/${employerId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to load evaluations");
-        }
-
-        const data = await response.json();
-
-        setEvaluations(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Evaluation loading error:", error);
-
-        setEvaluations([]);
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === "visible"
+      ) {
+        checkTokenExpiration();
       }
     };
 
-    loadEvaluations();
-  }, [employerId, token]);
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, []);
 
   /* =========================================================
      CHECK WHETHER TASK IS ALREADY EVALUATED
@@ -255,13 +716,6 @@ const Evaluations = () => {
 
   /* =========================================================
      CHECK WHETHER TASK IS COMPLETED
-     
-     A task is considered completed when:
-     - status is COMPLETED / DONE / FINISHED
-     OR
-     - completed/completion is true
-     
-     This supports common task response formats.
   ========================================================= */
 
   const isTaskCompleted = (task) => {
@@ -275,9 +729,12 @@ const Evaluations = () => {
 
     if (
       typeof status === "string" &&
-      ["COMPLETED", "COMPLETE", "DONE", "FINISHED"].includes(
-        status.trim().toUpperCase()
-      )
+      [
+        "COMPLETED",
+        "COMPLETE",
+        "DONE",
+        "FINISHED",
+      ].includes(status.trim().toUpperCase())
     ) {
       return true;
     }
@@ -299,9 +756,7 @@ const Evaluations = () => {
 
      ONLY SHOW:
      1. COMPLETED TASKS
-     2. TASKS THAT HAVE NOT ALREADY BEEN EVALUATED
-
-     Pending/incomplete tasks will NOT appear.
+     2. TASKS NOT ALREADY EVALUATED
   ========================================================= */
 
   const availableTasks = tasks.filter(
@@ -311,7 +766,7 @@ const Evaluations = () => {
   );
 
   /* =========================================================
-     CHECK WHETHER STUDENT HAS ANY INCOMPLETE TASKS
+     CHECK WHETHER STUDENT HAS INCOMPLETE TASKS
   ========================================================= */
 
   const hasIncompleteTasks = tasks.some(
@@ -350,13 +805,19 @@ const Evaluations = () => {
   const handleTaskChange = (e) => {
     const taskId = e.target.value;
 
-    if (taskId && isTaskEvaluated(taskId)) {
-      toast.error("This task has already been evaluated.");
+    if (
+      taskId &&
+      isTaskEvaluated(taskId)
+    ) {
+      toast.error(
+        "This task has already been evaluated."
+      );
       return;
     }
 
     const selectedTaskObject = tasks.find(
-      (task) => String(task.id) === String(taskId)
+      (task) =>
+        String(task.id) === String(taskId)
     );
 
     if (
@@ -385,18 +846,26 @@ const Evaluations = () => {
   ========================================================= */
 
   const handleSubmit = async () => {
+    if (!checkTokenExpiration()) return;
+
     if (!selectedInternship) {
-      toast.error("Please select an internship.");
+      toast.error(
+        "Please select an internship."
+      );
       return;
     }
 
     if (!selectedStudent) {
-      toast.error("Please select a student.");
+      toast.error(
+        "Please select a student."
+      );
       return;
     }
 
     if (!selectedTask) {
-      toast.error("Please select a task.");
+      toast.error(
+        "Please select a task."
+      );
       return;
     }
 
@@ -406,11 +875,14 @@ const Evaluations = () => {
     ===================================================== */
 
     const selectedTaskObject = tasks.find(
-      (task) => String(task.id) === String(selectedTask)
+      (task) =>
+        String(task.id) === String(selectedTask)
     );
 
     if (!selectedTaskObject) {
-      toast.error("Selected task could not be found.");
+      toast.error(
+        "Selected task could not be found."
+      );
       return;
     }
 
@@ -426,73 +898,99 @@ const Evaluations = () => {
     ===================================================== */
 
     if (isTaskEvaluated(selectedTask)) {
-      toast.error("This task has already been evaluated.");
+      toast.error(
+        "This task has already been evaluated."
+      );
       return;
     }
 
     if (!rating) {
-      toast.error("Please provide a rating.");
+      toast.error(
+        "Please provide a rating."
+      );
       return;
     }
 
-    if (!technical || !communication || !workEthic) {
-      toast.error("Please complete all performance ratings.");
+    if (
+      !technical ||
+      !communication ||
+      !workEthic
+    ) {
+      toast.error(
+        "Please complete all performance ratings."
+      );
       return;
     }
 
     if (!strengths.trim()) {
-      toast.error("Please enter strengths.");
+      toast.error(
+        "Please enter strengths."
+      );
       return;
     }
 
     if (!improvements.trim()) {
-      toast.error("Please enter areas for improvement.");
+      toast.error(
+        "Please enter areas for improvement."
+      );
       return;
     }
 
     if (!feedback.trim()) {
-      toast.error("Please enter overall feedback.");
+      toast.error(
+        "Please enter overall feedback."
+      );
       return;
     }
 
     try {
       setSubmitting(true);
 
-      const response = await fetch(
-        "https://remote-internship-30135.onrender.com/api/evaluations",
+      const response = await authorizedFetch(
+        `${API_BASE}/api/evaluations`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
           },
           body: JSON.stringify({
-            employerId: employerId,
-            internshipId: selectedInternship,
-            studentId: selectedStudent,
-            taskId: selectedTask,
-            rating: rating,
-            technical: technical,
-            communication: communication,
-            workEthic: workEthic,
-            strengths: strengths,
-            improvements: improvements,
-            feedback: feedback,
+            employerId,
+            internshipId:
+              selectedInternship,
+            studentId:
+              selectedStudent,
+            taskId:
+              selectedTask,
+            rating,
+            technical,
+            communication,
+            workEthic,
+            strengths,
+            improvements,
+            feedback,
           }),
         }
       );
+
+      if (!response) return;
 
       const data = await response.json();
 
       if (!response.ok) {
         if (
           response.status === 409 ||
-          data?.message?.toLowerCase()?.includes("already")
+          data?.message
+            ?.toLowerCase()
+            ?.includes("already")
         ) {
-          toast.error("This task has already been evaluated.");
+          toast.error(
+            "This task has already been evaluated."
+          );
         } else {
           toast.error(
-            data?.message || "Failed to submit evaluation."
+            data?.message ||
+              "Failed to submit evaluation."
           );
         }
 
@@ -500,15 +998,25 @@ const Evaluations = () => {
       }
 
       /* =====================================================
-         ADD NEW EVALUATION TO LOCAL STATE
+         UPDATE EVALUATION STATE + CACHE
       ===================================================== */
 
-      setEvaluations((previous) => [
+      const updatedEvaluations = [
         data,
-        ...previous,
-      ]);
+        ...evaluations,
+      ];
 
-      toast.success("Evaluation submitted successfully.");
+      setEvaluations(
+        updatedEvaluations
+      );
+
+      saveEvaluationsCache(
+        updatedEvaluations
+      );
+
+      toast.success(
+        "Evaluation submitted successfully."
+      );
 
       /* =====================================================
          CLEAR EVALUATION FORM
@@ -529,7 +1037,9 @@ const Evaluations = () => {
         error
       );
 
-      toast.error("Failed to submit evaluation.");
+      toast.error(
+        "Failed to submit evaluation."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -543,6 +1053,9 @@ const Evaluations = () => {
     setSelectedInternship("");
     setSelectedStudent("");
     setSelectedTask("");
+
+    setStudents([]);
+    setTasks([]);
 
     setRating(0);
 
@@ -808,7 +1321,7 @@ const Evaluations = () => {
                 ================================================= */}
 
                 {allCompletedTasksEvaluated && (
-                  <div className="evaluation-complete">
+                  <div className="evaluation-complete" style={{ color: "green" }}>
                     ✓ All completed tasks for this student
                     have already been evaluated.
                   </div>

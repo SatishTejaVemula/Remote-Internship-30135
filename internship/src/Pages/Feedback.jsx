@@ -20,18 +20,48 @@ import {
   Award,
 } from "lucide-react";
 
+/* =========================================================
+   API + LOCAL STORAGE KEYS
+========================================================= */
+
+const API_BASE =
+  "https://remote-internship-30135.onrender.com";
+
+const TOKEN_KEY = "token";
+const STUDENT_PROFILE_KEY = "studentProfile";
+const FEEDBACK_CACHE_KEY =
+  "studentFeedbackData";
+
 
 const Feedback = () => {
   const navigate = useNavigate();
+
 
   /* =========================================================
      STUDENT
   ========================================================= */
 
-  const student =
-    JSON.parse(
-      localStorage.getItem("studentProfile")
-    ) || {};
+  const getStudent = () => {
+    try {
+      const storedStudent =
+        localStorage.getItem(
+          STUDENT_PROFILE_KEY
+        );
+
+      return storedStudent
+        ? JSON.parse(storedStudent)
+        : {};
+    } catch (error) {
+      console.error(
+        "Failed to read student profile:",
+        error
+      );
+
+      return {};
+    }
+  };
+
+  const student = getStudent();
 
 
   /* =========================================================
@@ -46,31 +76,370 @@ const Feedback = () => {
 
 
   /* =========================================================
-     LOAD EVALUATIONS
+     LOGOUT
   ========================================================= */
 
-  useEffect(() => {
-    if (!student?.id) {
-      setLoading(false);
-      return;
+  const logout = () => {
+    /*
+     * Remove JWT
+     */
+    localStorage.removeItem(
+      TOKEN_KEY
+    );
+
+    /*
+     * Remove student profile
+     */
+    localStorage.removeItem(
+      STUDENT_PROFILE_KEY
+    );
+
+    /*
+     * Remove feedback cache
+     */
+    localStorage.removeItem(
+      FEEDBACK_CACHE_KEY
+    );
+
+    /*
+     * Remove other possible
+     * authentication data
+     */
+    localStorage.removeItem("user");
+    localStorage.removeItem("student");
+
+    /*
+     * Redirect to login
+     */
+    navigate("/login", {
+      replace: true,
+    });
+  };
+
+
+  /* =========================================================
+     GET JWT EXPIRATION
+  ========================================================= */
+
+  const getTokenExpiration = () => {
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+    if (!token) {
+      return null;
     }
 
-    const loadEvaluations = async () => {
+    try {
+      const parts =
+        token.split(".");
+
+      if (parts.length !== 3) {
+        return null;
+      }
+
+      /*
+       * Decode JWT payload
+       */
+      const payload = JSON.parse(
+        atob(
+          parts[1]
+            .replace(/-/g, "+")
+            .replace(/_/g, "/")
+        )
+      );
+
+      if (!payload.exp) {
+        return null;
+      }
+
+      /*
+       * JWT exp is seconds.
+       * JavaScript Date uses milliseconds.
+       */
+      return payload.exp * 1000;
+    } catch (error) {
+      console.error(
+        "Invalid JWT:",
+        error
+      );
+
+      return null;
+    }
+  };
+
+
+  /* =========================================================
+     CHECK JWT EXPIRATION
+  ========================================================= */
+
+  const checkTokenExpiration = () => {
+    const token =
+      localStorage.getItem(
+        TOKEN_KEY
+      );
+
+    /*
+     * No token
+     */
+    if (!token) {
+      logout();
+      return false;
+    }
+
+    const expirationTime =
+      getTokenExpiration();
+
+    /*
+     * If JWT does not contain exp,
+     * allow it to continue.
+     */
+    if (!expirationTime) {
+      return true;
+    }
+
+    /*
+     * JWT expired
+     */
+    if (
+      Date.now() >=
+      expirationTime
+    ) {
+      toast.error(
+        "Your session has expired. Please login again."
+      );
+
+      logout();
+
+      return false;
+    }
+
+    return true;
+  };
+
+
+  /* =========================================================
+     JWT EXPIRATION TIMER
+  ========================================================= */
+
+  const setupTokenExpirationTimer =
+    () => {
+      const expirationTime =
+        getTokenExpiration();
+
+      if (!expirationTime) {
+        return null;
+      }
+
+      const remainingTime =
+        expirationTime -
+        Date.now();
+
+      /*
+       * Already expired
+       */
+      if (remainingTime <= 0) {
+        toast.error(
+          "Your session has expired. Please login again."
+        );
+
+        logout();
+
+        return null;
+      }
+
+      /*
+       * Automatically logout exactly
+       * when JWT expires.
+       */
+      const timer =
+        setTimeout(() => {
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+          logout();
+        }, remainingTime);
+
+      return timer;
+    };
+
+
+  /* =========================================================
+     LOAD FEEDBACK FROM LOCAL STORAGE
+  ========================================================= */
+
+  const loadCachedFeedback = () => {
+    try {
+      const cached =
+        localStorage.getItem(
+          FEEDBACK_CACHE_KEY
+        );
+
+      /*
+       * No cache
+       */
+      if (!cached) {
+        return false;
+      }
+
+      const data =
+        JSON.parse(cached);
+
+      if (!data) {
+        return false;
+      }
+
+      /*
+       * Get current student
+       */
+      const currentStudent =
+        getStudent();
+
+      /*
+       * Make sure cache belongs
+       * to current student.
+       */
+      if (
+        data.studentId &&
+        currentStudent.id &&
+        Number(data.studentId) !==
+          Number(currentStudent.id)
+      ) {
+        localStorage.removeItem(
+          FEEDBACK_CACHE_KEY
+        );
+
+        return false;
+      }
+
+      /*
+       * Restore evaluations
+       */
+      setEvaluations(
+        Array.isArray(
+          data.evaluations
+        )
+          ? data.evaluations
+          : []
+      );
+
+      return true;
+    } catch (error) {
+      console.error(
+        "Failed to load cached feedback:",
+        error
+      );
+
+      localStorage.removeItem(
+        FEEDBACK_CACHE_KEY
+      );
+
+      return false;
+    }
+  };
+
+
+  /* =========================================================
+     SAVE FEEDBACK TO LOCAL STORAGE
+  ========================================================= */
+
+  const saveFeedbackToCache = (
+    evaluationData
+  ) => {
+    try {
+      const cacheData = {
+        studentId:
+          student?.id,
+
+        evaluations:
+          Array.isArray(
+            evaluationData
+          )
+            ? evaluationData
+            : [],
+
+        cachedAt: Date.now(),
+      };
+
+      localStorage.setItem(
+        FEEDBACK_CACHE_KEY,
+        JSON.stringify(
+          cacheData
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Failed to cache feedback:",
+        error
+      );
+    }
+  };
+
+
+  /* =========================================================
+     LOAD EVALUATIONS FROM API
+  ========================================================= */
+
+  const loadEvaluations =
+    async () => {
+      /*
+       * Check JWT before API call
+       */
+      if (
+        !checkTokenExpiration()
+      ) {
+        return;
+      }
+
+      /*
+       * Student not available
+       */
+      if (!student?.id) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
 
         const token =
-          localStorage.getItem("token");
+          localStorage.getItem(
+            TOKEN_KEY
+          );
 
-        const res = await fetch(
-          `https://remote-internship-30135.onrender.com/api/evaluations/student/${student.id}`,
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
-          }
-        );
+        const res =
+          await fetch(
+            `${API_BASE}/api/evaluations/student/${student.id}`,
+            {
+              method: "GET",
+
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+
+                "Content-Type":
+                  "application/json",
+              },
+            }
+          );
+
+        /*
+         * JWT expired / unauthorized
+         */
+        if (
+          res.status === 401 ||
+          res.status === 403
+        ) {
+          toast.error(
+            "Your session has expired. Please login again."
+          );
+
+          logout();
+
+          return;
+        }
 
         if (!res.ok) {
           throw new Error(
@@ -81,12 +450,24 @@ const Feedback = () => {
         const data =
           await res.json();
 
-        setEvaluations(
+        const evaluationData =
           Array.isArray(data)
             ? data
-            : []
+            : [];
+
+        /*
+         * Update state
+         */
+        setEvaluations(
+          evaluationData
         );
 
+        /*
+         * Save to localStorage
+         */
+        saveFeedbackToCache(
+          evaluationData
+        );
       } catch (error) {
         console.error(
           "Feedback error:",
@@ -98,14 +479,103 @@ const Feedback = () => {
         toast.error(
           "Couldn't load your feedback."
         );
-
       } finally {
         setLoading(false);
       }
     };
 
-    loadEvaluations();
-  }, [student?.id]);
+
+  /* =========================================================
+     INITIAL LOAD
+
+     1. Check JWT
+     2. Setup expiration timer
+     3. Check localStorage
+     4. Cache exists -> NO API
+     5. No cache -> API ONCE
+  ========================================================= */
+
+  useEffect(() => {
+    /*
+     * Check JWT
+     */
+    if (
+      !checkTokenExpiration()
+    ) {
+      return;
+    }
+
+    /*
+     * Setup automatic logout
+     */
+    const timer =
+      setupTokenExpirationTimer();
+
+    /*
+     * Try cache first
+     */
+    const hasCache =
+      loadCachedFeedback();
+
+    if (hasCache) {
+      /*
+       * Cache exists.
+       *
+       * NO API REQUEST.
+       */
+      setLoading(false);
+    } else {
+      /*
+       * No cache.
+       *
+       * Fetch once.
+       */
+      loadEvaluations();
+    }
+
+    /*
+     * Cleanup JWT timer
+     */
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, []);
+
+
+  /* =========================================================
+     CHECK JWT WHEN RETURNING TO TAB
+
+     IMPORTANT:
+     This does NOT fetch feedback.
+
+     It only checks JWT expiration.
+  ========================================================= */
+
+  useEffect(() => {
+    const handleVisibilityChange =
+      () => {
+        if (
+          document.visibilityState ===
+          "visible"
+        ) {
+          checkTokenExpiration();
+        }
+      };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+    };
+  }, []);
 
 
   /* =========================================================
@@ -123,9 +593,12 @@ const Feedback = () => {
           evaluations.reduce(
             (sum, item) =>
               sum +
-              Number(item.rating || 0),
+              Number(
+                item.rating || 0
+              ),
             0
-          ) / totalFeedback
+          ) /
+          totalFeedback
         ).toFixed(1);
 
 
@@ -133,7 +606,8 @@ const Feedback = () => {
     totalFeedback === 0
       ? 0
       : Math.round(
-          (Number(avgRating) / 5) *
+          (Number(avgRating) /
+            5) *
             100
         );
 
@@ -144,8 +618,11 @@ const Feedback = () => {
 
   return (
     <>
-
       <div className="sd-layout">
+
+        {/* ===================================================
+            SIDEBAR
+        =================================================== */}
 
         <aside className="sd-sidebar">
 
@@ -196,7 +673,9 @@ const Feedback = () => {
               icon={ClipboardList}
               label="My Tasks"
               onClick={() =>
-                navigate("/mytasks")
+                navigate(
+                  "/mytasks"
+                )
               }
             />
 
@@ -208,7 +687,9 @@ const Feedback = () => {
               icon={MessageSquare}
               label="Feedback"
               onClick={() =>
-                navigate("/feedback")
+                navigate(
+                  "/feedback"
+                )
               }
             />
 
@@ -235,6 +716,10 @@ const Feedback = () => {
         =================================================== */}
 
         <main className="sd-main">
+
+          {/* =================================================
+              PAGE HEADER
+          ================================================= */}
 
           <div className="page-header">
 
@@ -271,13 +756,11 @@ const Feedback = () => {
 
             <>
 
-
               {/* =================================================
                   STATISTICS
               ================================================= */}
 
               <section className="stats-grid">
-
 
                 {/* Total Feedback */}
 
@@ -464,10 +947,11 @@ const Feedback = () => {
                     (evalItem) => (
 
                       <div
-                        key={evalItem.id}
+                        key={
+                          evalItem.id
+                        }
                         className="evaluation-card"
                       >
-
 
                         {/* =====================================
                             INTERNSHIP
@@ -498,10 +982,12 @@ const Feedback = () => {
                           <strong className="rating-score">
 
                             ⭐{" "}
+
                             {
                               evalItem.rating ??
                               0
                             }
+
                             /5
 
                           </strong>
