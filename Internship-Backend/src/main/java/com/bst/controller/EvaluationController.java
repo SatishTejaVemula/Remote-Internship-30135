@@ -189,4 +189,11 @@ public class EvaluationController {
 
         return evaluationService.getByEmployer(employerId);
     }
+
+    @PostMapping
+    public Object createEvaluationRoot(
+            @RequestBody Map<String, String> body) {
+
+        return createEvaluation(body);
+    }
 }
