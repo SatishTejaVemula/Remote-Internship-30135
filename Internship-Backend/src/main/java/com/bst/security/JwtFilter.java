@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -26,37 +27,34 @@ public class JwtFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsService userDetailsService;
 
-    /*
-     * =========================================================
-     * PUBLIC ROUTES
-     *
-     * These routes do NOT require JWT authentication.
-     *
-     * IMPORTANT:
-     * /api/evaluations/ MUST NOT be here.
-     * Evaluations require ADMIN or DEV authentication.
-     * =========================================================
-     */
+    // =========================================
+    // PUBLIC ROUTES
+    // =========================================
+    //
+    // IMPORTANT:
+    // /api/evaluations/ is NOT here.
+    //
+    // Evaluation endpoints require JWT.
+    //
     private static final List<String> PUBLIC_ROUTES = List.of(
-        "/api/auth/",
-        "/emailotp/",
-        "/api/internships/",
-        "/api/applications/",
-        "/api/tasks/",
-        "/api/employers/",
-        "/api/evaluations/",
-        "/uploads/",
-        "/swagger-ui/",
-        "/v3/api-docs/"
+            "/api/auth/",
+            "/emailotp/",
+            "/api/internships/",
+            "/api/applications/",
+            "/api/tasks/",
+            "/api/employers/",
+            "/uploads/",
+            "/swagger-ui/",
+            "/v3/api-docs/"
     );
 
-    /*
-     * =========================================================
-     * DECIDE WHETHER JWT FILTER SHOULD RUN
-     * =========================================================
-     */
+    // =========================================
+    // SHOULD NOT FILTER
+    // =========================================
+
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
+    protected boolean shouldNotFilter(
+            HttpServletRequest request) {
 
         String path = request.getRequestURI();
 
@@ -64,45 +62,70 @@ public class JwtFilter extends OncePerRequestFilter {
                 .anyMatch(path::startsWith);
     }
 
-    /*
-     * =========================================================
-     * JWT FILTER
-     * =========================================================
-     */
+    // =========================================
+    // JWT FILTER
+    // =========================================
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+            FilterChain filterChain)
+            throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        String authHeader =
+                request.getHeader("Authorization");
 
-        /*
-         * No token.
-         *
-         * Don't immediately return 401 here.
-         * Let Spring Security decide whether the endpoint
-         * requires authentication.
-         */
+        System.out.println(
+                "===================================="
+        );
+
+        System.out.println(
+                "JWT FILTER: " +
+                request.getMethod() +
+                " " +
+                request.getRequestURI()
+        );
+
+        // =========================================
+        // NO TOKEN
+        // =========================================
+
         if (authHeader == null ||
                 !authHeader.startsWith("Bearer ")) {
 
-            filterChain.doFilter(request, response);
+            System.out.println(
+                    "JWT FILTER: No Bearer token"
+            );
+
+            System.out.println(
+                    "===================================="
+            );
+
+            filterChain.doFilter(
+                    request,
+                    response
+            );
+
             return;
         }
 
         try {
 
-            String token = authHeader.substring(7);
+            String token =
+                    authHeader.substring(7);
 
             String username =
                     jwtUtil.extractUsername(token);
 
-            /*
-             * Only authenticate if there isn't already
-             * an authentication object.
-             */
+            System.out.println(
+                    "JWT USERNAME: " + username
+            );
+
+            // =========================================
+            // AUTHENTICATE USER
+            // =========================================
+
             if (username != null &&
                     SecurityContextHolder
                             .getContext()
@@ -112,39 +135,52 @@ public class JwtFilter extends OncePerRequestFilter {
                         userDetailsService
                                 .loadUserByUsername(username);
 
-                /*
-                 * Validate JWT.
-                 */
+                System.out.println(
+                        "JWT AUTHORITIES: " +
+                        userDetails.getAuthorities()
+                );
+
+                // =========================================
+                // VALIDATE TOKEN
+                // =========================================
+
                 if (jwtUtil.validateToken(token)) {
 
-                    UsernamePasswordAuthenticationToken authToken =
+                    UsernamePasswordAuthenticationToken
+                            authenticationToken =
                             new UsernamePasswordAuthenticationToken(
                                     userDetails,
                                     null,
                                     userDetails.getAuthorities()
                             );
 
-                    authToken.setDetails(
+                    authenticationToken.setDetails(
                             new WebAuthenticationDetailsSource()
                                     .buildDetails(request)
                     );
 
-                    /*
-                     * Put authenticated user into
-                     * Spring Security context.
-                     */
                     SecurityContextHolder
                             .getContext()
-                            .setAuthentication(authToken);
+                            .setAuthentication(
+                                    authenticationToken
+                            );
+
+                    System.out.println(
+                            "JWT AUTHENTICATION SUCCESS"
+                    );
+
+                } else {
+
+                    System.out.println(
+                            "JWT TOKEN INVALID"
+                    );
                 }
             }
 
         } catch (Exception e) {
 
-            /*
-             * Invalid/expired JWT.
-             */
-            SecurityContextHolder.clearContext();
+            SecurityContextHolder
+                    .clearContext();
 
             System.out.println(
                     "JWT authentication failed: "
@@ -152,9 +188,13 @@ public class JwtFilter extends OncePerRequestFilter {
             );
         }
 
-        /*
-         * Continue request.
-         */
-        filterChain.doFilter(request, response);
+        System.out.println(
+                "===================================="
+        );
+
+        filterChain.doFilter(
+                request,
+                response
+        );
     }
 }

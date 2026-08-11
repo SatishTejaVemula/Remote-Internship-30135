@@ -6,11 +6,11 @@ import com.bst.repo.StudentRepo;
 import com.bst.repo.EmployerRepo;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import org.springframework.stereotype.Service;
 
@@ -32,11 +32,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         System.out.println("====================================");
         System.out.println("LOGIN EMAIL: " + email);
 
-        /*
-         * =====================================================
-         * CHECK STUDENT
-         * =====================================================
-         */
+        // =========================================
+        // CHECK STUDENT
+        // =========================================
 
         Student student =
                 studentRepo.findByEmail(email).orElse(null);
@@ -59,21 +57,15 @@ public class CustomUserDetailsService implements UserDetailsService {
             );
         }
 
-        /*
-         * =====================================================
-         * CHECK EMPLOYER
-         * =====================================================
-         */
+        // =========================================
+        // CHECK EMPLOYER
+        // =========================================
 
         Employer employer =
                 employerRepo.findByEmail(email).orElse(null);
 
         if (employer != null) {
 
-            /*
-             * Your current application treats Employer
-             * accounts as ADMIN accounts.
-             */
             System.out.println("USER TYPE: EMPLOYER");
             System.out.println("ROLE: ROLE_ADMIN");
 
@@ -90,11 +82,9 @@ public class CustomUserDetailsService implements UserDetailsService {
             );
         }
 
-        /*
-         * =====================================================
-         * USER NOT FOUND
-         * =====================================================
-         */
+        // =========================================
+        // USER NOT FOUND
+        // =========================================
 
         System.out.println(
                 "USER NOT FOUND: " + email
