@@ -27,17 +27,16 @@ public class JwtFilter extends OncePerRequestFilter {
 
     // ✅ Routes that should NEVER require a token
     private static final List<String> PUBLIC_ROUTES = List.of(
-        "/api/auth/",
-        "/emailotp/",
-        "/api/internships/",
-        "/api/applications/",
-        "/api/tasks/",
-        "/api/employers/",
-        "/api/evaluations/",
-        "/uploads/",
-        "/swagger-ui/",
-        "/v3/api-docs/"
-    );
+    "/api/auth/",
+    "/emailotp/",
+    "/api/internships/",
+    "/api/applications/",
+    "/api/tasks/",
+    "/api/employers/",
+    "/uploads/",
+    "/swagger-ui/",
+    "/v3/api-docs/"
+);
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
