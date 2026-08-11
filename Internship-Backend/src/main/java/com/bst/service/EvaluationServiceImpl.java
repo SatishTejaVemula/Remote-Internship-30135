@@ -194,4 +194,11 @@ public class EvaluationServiceImpl
 
         evaluationRepo.deleteById(id);
     }
+
+    @Override
+    public List<Evaluation> getByEmployer(Long employerId) {
+
+        return evaluationRepo
+                .findByTask_Internship_Employer_Id(employerId);
+    }
 }

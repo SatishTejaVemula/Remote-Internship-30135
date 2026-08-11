@@ -182,4 +182,11 @@ public class EvaluationController {
 
         return "Evaluation deleted successfully";
     }
+
+    @GetMapping("/employer/{employerId}")
+    public List<Evaluation> getEvaluationsByEmployer(
+            @PathVariable Long employerId) {
+
+        return evaluationService.getByEmployer(employerId);
+    }
 }

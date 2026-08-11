@@ -16,6 +16,8 @@ public interface EvaluationService {
 
     List<Evaluation> getByTask(Long taskId);
 
+    List<Evaluation> getByEmployer(Long employerId);
+
     boolean exists(Long studentId, Long taskId);
 
     List<EvaluationDTO> getEvaluationsByStudentDTO(
