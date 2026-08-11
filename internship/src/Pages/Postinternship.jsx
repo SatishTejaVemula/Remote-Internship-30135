@@ -20,6 +20,10 @@ const Postinternship = () => {
   const [internships, setInternships] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  /* =========================================================
+     ADMIN
+  ========================================================= */
+
   const storedAdmin =
     localStorage.getItem("adminProfile");
 
@@ -32,6 +36,15 @@ const Postinternship = () => {
   const token =
     localStorage.getItem("token");
 
+  /* =========================================================
+     DELETE CONFIRMATION STATE
+  ========================================================= */
+
+  const [showDeleteModal, setShowDeleteModal] =
+    useState(false);
+
+  const [deleteInternshipId, setDeleteInternshipId] =
+    useState(null);
 
   /* =========================================================
      FORM
@@ -47,7 +60,6 @@ const Postinternship = () => {
     requirements: "",
     skills: "",
   });
-
 
   /* =========================================================
      LOAD INTERNSHIPS
@@ -68,7 +80,6 @@ const Postinternship = () => {
 
     loadInternships();
   }, [employerId]);
-
 
   const loadInternships = async () => {
     try {
@@ -115,7 +126,6 @@ const Postinternship = () => {
     }
   };
 
-
   /* =========================================================
      INPUT CHANGE
   ========================================================= */
@@ -131,7 +141,6 @@ const Postinternship = () => {
       [name]: value,
     }));
   };
-
 
   /* =========================================================
      POST INTERNSHIP
@@ -215,15 +224,27 @@ const Postinternship = () => {
     }
   };
 
-
   /* =========================================================
-     DELETE INTERNSHIP
+     OPEN DELETE CONFIRMATION
   ========================================================= */
 
-  const handleDelete = async (id) => {
+  const handleDelete = (id) => {
+    setDeleteInternshipId(id);
+    setShowDeleteModal(true);
+  };
+
+  /* =========================================================
+     CONFIRM DELETE INTERNSHIP
+  ========================================================= */
+
+  const confirmDeleteInternship = async () => {
+    if (!deleteInternshipId) {
+      return;
+    }
+
     try {
       const res = await fetch(
-        `https://remote-internship-30135.onrender.com/api/internships/delete/${id}`,
+        `https://remote-internship-30135.onrender.com/api/internships/delete/${deleteInternshipId}`,
         {
           method: "DELETE",
 
@@ -248,7 +269,8 @@ const Postinternship = () => {
 
       setInternships((previous) =>
         previous.filter(
-          (item) => item.id !== id
+          (item) =>
+            item.id !== deleteInternshipId
         )
       );
 
@@ -265,9 +287,21 @@ const Postinternship = () => {
       toast.error(
         "Error deleting internship."
       );
+
+    } finally {
+      setShowDeleteModal(false);
+      setDeleteInternshipId(null);
     }
   };
 
+  /* =========================================================
+     CANCEL DELETE
+  ========================================================= */
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setDeleteInternshipId(null);
+  };
 
   /* =========================================================
      RENDER
@@ -275,9 +309,7 @@ const Postinternship = () => {
 
   return (
     <>
-
       <div className="admin-layout">
-
 
         {/* ===================================================
             SIDEBAR
@@ -297,7 +329,6 @@ const Postinternship = () => {
               }
             />
 
-
             <NavButton
               active
               icon={FileText}
@@ -309,7 +340,6 @@ const Postinternship = () => {
               }
             />
 
-
             <NavButton
               icon={Users}
               label="Applications"
@@ -319,7 +349,6 @@ const Postinternship = () => {
                 )
               }
             />
-
 
             <NavButton
               icon={TrendingUp}
@@ -331,7 +360,6 @@ const Postinternship = () => {
               }
             />
 
-
             <NavButton
               icon={ClipboardCheck}
               label="Evaluations"
@@ -341,7 +369,6 @@ const Postinternship = () => {
                 )
               }
             />
-
 
             <NavButton
               icon={User}
@@ -356,7 +383,6 @@ const Postinternship = () => {
           </nav>
 
         </aside>
-
 
         {/* ===================================================
             MAIN CONTENT
@@ -389,7 +415,6 @@ const Postinternship = () => {
 
               </div>
 
-
               {/* =============================================
                   FORM CARD
               ============================================= */}
@@ -399,7 +424,6 @@ const Postinternship = () => {
                 <h2>
                   Internship Details
                 </h2>
-
 
                 <form
                   onSubmit={handleSubmit}
@@ -423,7 +447,6 @@ const Postinternship = () => {
                     />
 
                   </div>
-
 
                   {/* Duration + Location */}
 
@@ -462,7 +485,6 @@ const Postinternship = () => {
 
                     </div>
 
-
                     <div className="form-group">
 
                       <label htmlFor="location">
@@ -494,7 +516,6 @@ const Postinternship = () => {
 
                   </div>
 
-
                   {/* Stipend */}
 
                   <div className="form-group">
@@ -513,7 +534,6 @@ const Postinternship = () => {
                     />
 
                   </div>
-
 
                   {/* Description */}
 
@@ -535,7 +555,6 @@ const Postinternship = () => {
 
                   </div>
 
-
                   {/* Requirements */}
 
                   <div className="form-group">
@@ -555,7 +574,6 @@ const Postinternship = () => {
                     />
 
                   </div>
-
 
                   {/* Skills */}
 
@@ -581,7 +599,6 @@ const Postinternship = () => {
 
                   </div>
 
-
                   {/* Buttons */}
 
                   <div className="form-actions">
@@ -590,13 +607,14 @@ const Postinternship = () => {
                       type="submit"
                       className="post-submit-btn"
                     >
+
                       <FileText
                         size={18}
                       />
 
                       Post Internship
-                    </button>
 
+                    </button>
 
                     <button
                       type="button"
@@ -616,7 +634,6 @@ const Postinternship = () => {
 
               </section>
 
-
               {/* =============================================
                   POSTED INTERNSHIPS
               ============================================= */}
@@ -626,7 +643,6 @@ const Postinternship = () => {
                 <h2>
                   Posted Internships
                 </h2>
-
 
                 {internships.length ===
                 0 ? (
@@ -700,7 +716,6 @@ const Postinternship = () => {
 
                         </div>
 
-
                         <button
                           type="button"
                           className="post-delete-btn"
@@ -723,15 +738,79 @@ const Postinternship = () => {
               </section>
 
             </>
+
           )}
 
         </main>
 
       </div>
+
+      {/* =====================================================
+          DELETE CONFIRMATION MODAL
+      ===================================================== */}
+
+      {showDeleteModal && (
+
+        <div
+          className="modal-overlay"
+          onClick={cancelDelete}
+        >
+
+          <div
+            className="modal-container"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+
+            <h3>
+              Delete Internship?
+            </h3>
+
+            <p
+              style={{
+                marginTop: "10px",
+                marginBottom: "20px",
+              }}
+            >
+              Are you sure you want to
+              delete this internship?
+              <br />
+              This action cannot be
+              undone.
+            </p>
+
+            <div className="modal-actions">
+
+              <button
+                type="button"
+                className="cancel-btn"
+                onClick={cancelDelete}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="delete-btn"
+                onClick={
+                  confirmDeleteInternship
+                }
+              >
+                Delete
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
     </>
   );
 };
-
 
 /* =========================================================
    NAV BUTTON
@@ -756,14 +835,15 @@ function NavButton({
           : undefined
       }
     >
+
       <Icon size={20} />
 
       <span>
         {label}
       </span>
+
     </button>
   );
 }
-
 
 export default Postinternship;

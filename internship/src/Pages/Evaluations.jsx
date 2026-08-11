@@ -254,22 +254,94 @@ const Evaluations = () => {
   };
 
   /* =========================================================
+     CHECK WHETHER TASK IS COMPLETED
+     
+     A task is considered completed when:
+     - status is COMPLETED / DONE / FINISHED
+     OR
+     - completed/completion is true
+     
+     This supports common task response formats.
+  ========================================================= */
+
+  const isTaskCompleted = (task) => {
+    if (!task) return false;
+
+    const status =
+      task.status ??
+      task.taskStatus ??
+      task.completionStatus ??
+      task.state;
+
+    if (
+      typeof status === "string" &&
+      ["COMPLETED", "COMPLETE", "DONE", "FINISHED"].includes(
+        status.trim().toUpperCase()
+      )
+    ) {
+      return true;
+    }
+
+    if (
+      task.completed === true ||
+      task.isCompleted === true ||
+      task.completion === true ||
+      task.taskCompleted === true
+    ) {
+      return true;
+    }
+
+    return false;
+  };
+
+  /* =========================================================
      AVAILABLE TASKS
-     ONLY SHOW TASKS THAT ARE NOT EVALUATED
+
+     ONLY SHOW:
+     1. COMPLETED TASKS
+     2. TASKS THAT HAVE NOT ALREADY BEEN EVALUATED
+
+     Pending/incomplete tasks will NOT appear.
   ========================================================= */
 
   const availableTasks = tasks.filter(
-    (task) => !isTaskEvaluated(task.id)
+    (task) =>
+      isTaskCompleted(task) &&
+      !isTaskEvaluated(task.id)
   );
 
   /* =========================================================
-     CHECK WHETHER ALL TASKS ARE EVALUATED
+     CHECK WHETHER STUDENT HAS ANY INCOMPLETE TASKS
   ========================================================= */
 
-  const allTasksEvaluated =
+  const hasIncompleteTasks = tasks.some(
+    (task) => !isTaskCompleted(task)
+  );
+
+  /* =========================================================
+     CHECK WHETHER ALL COMPLETED TASKS ARE EVALUATED
+  ========================================================= */
+
+  const completedTasks = tasks.filter((task) =>
+    isTaskCompleted(task)
+  );
+
+  const allCompletedTasksEvaluated =
     selectedStudent &&
+    completedTasks.length > 0 &&
+    completedTasks.every((task) =>
+      isTaskEvaluated(task.id)
+    );
+
+  /* =========================================================
+     CHECK WHETHER THERE ARE NO COMPLETED TASKS
+  ========================================================= */
+
+  const noCompletedTasks =
+    selectedStudent &&
+    !loadingTasks &&
     tasks.length > 0 &&
-    tasks.every((task) => isTaskEvaluated(task.id));
+    completedTasks.length === 0;
 
   /* =========================================================
      TASK CHANGE
@@ -280,6 +352,20 @@ const Evaluations = () => {
 
     if (taskId && isTaskEvaluated(taskId)) {
       toast.error("This task has already been evaluated.");
+      return;
+    }
+
+    const selectedTaskObject = tasks.find(
+      (task) => String(task.id) === String(taskId)
+    );
+
+    if (
+      selectedTaskObject &&
+      !isTaskCompleted(selectedTaskObject)
+    ) {
+      toast.error(
+        "This task must be completed before evaluation."
+      );
       return;
     }
 
@@ -314,9 +400,31 @@ const Evaluations = () => {
       return;
     }
 
-    /*
-     * Final frontend duplicate check.
-     */
+    /* =====================================================
+       FINAL CHECK:
+       TASK MUST BE COMPLETED
+    ===================================================== */
+
+    const selectedTaskObject = tasks.find(
+      (task) => String(task.id) === String(selectedTask)
+    );
+
+    if (!selectedTaskObject) {
+      toast.error("Selected task could not be found.");
+      return;
+    }
+
+    if (!isTaskCompleted(selectedTaskObject)) {
+      toast.error(
+        "Student must complete the task before evaluation."
+      );
+      return;
+    }
+
+    /* =====================================================
+       FINAL FRONTEND DUPLICATE CHECK
+    ===================================================== */
+
     if (isTaskEvaluated(selectedTask)) {
       toast.error("This task has already been evaluated.");
       return;
@@ -339,6 +447,11 @@ const Evaluations = () => {
 
     if (!improvements.trim()) {
       toast.error("Please enter areas for improvement.");
+      return;
+    }
+
+    if (!feedback.trim()) {
+      toast.error("Please enter overall feedback.");
       return;
     }
 
@@ -668,9 +781,11 @@ const Evaluations = () => {
                       }
                     >
                       <option value="">
-                        {allTasksEvaluated
-                          ? "All tasks already evaluated"
-                          : "Select task"}
+                        {allCompletedTasksEvaluated
+                          ? "All completed tasks already evaluated"
+                          : noCompletedTasks
+                          ? "No completed tasks available"
+                          : "Select completed task"}
                       </option>
 
                       {availableTasks.map((task) => (
@@ -689,15 +804,41 @@ const Evaluations = () => {
                 </div>
 
                 {/* =================================================
-                    ALL TASKS EVALUATED
+                    ALL COMPLETED TASKS EVALUATED
                 ================================================= */}
 
-                {allTasksEvaluated && (
+                {allCompletedTasksEvaluated && (
                   <div className="evaluation-complete">
-                    ✓ All tasks for this student
+                    ✓ All completed tasks for this student
                     have already been evaluated.
                   </div>
                 )}
+
+                {/* =================================================
+                    NO COMPLETED TASKS
+                ================================================= */}
+
+                {noCompletedTasks && (
+                  <div className="evaluation-complete">
+                    No completed tasks are available
+                    for evaluation.
+                  </div>
+                )}
+
+                {/* =================================================
+                    INCOMPLETE TASKS EXIST
+                ================================================= */}
+
+                {selectedStudent &&
+                  !loadingTasks &&
+                  hasIncompleteTasks &&
+                  availableTasks.length > 0 && (
+                    <div className="evaluation-complete">
+                      Only completed tasks are available
+                      for evaluation. Incomplete tasks
+                      cannot be evaluated.
+                    </div>
+                  )}
 
                 {/* =================================================
                     NO TASKS
@@ -927,11 +1068,11 @@ const Evaluations = () => {
                 ================================================= */}
 
                 <label>
-                  Additional Feedback
+                  Overall Feedback
                 </label>
 
                 <textarea
-                  placeholder="Enter additional feedback..."
+                  placeholder="Enter overall feedback..."
                   value={feedback}
                   onChange={(e) =>
                     setFeedback(
@@ -957,7 +1098,7 @@ const Evaluations = () => {
                     disabled={
                       submitting ||
                       !selectedTask ||
-                      allTasksEvaluated
+                      allCompletedTasksEvaluated
                     }
                   >
                     {submitting ? (
